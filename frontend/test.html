@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Petit Bac — Test WebSocket (phase 2)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 720px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      color: #222;
+      background: #fafafa;
+    }
+    h1 { margin-bottom: 0.25rem; }
+    .subtitle { color: #666; margin-top: 0; font-size: 0.9rem; }
+    .panel {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    label { display: block; font-size: 0.85rem; color: #555; margin-bottom: 0.25rem; }
+    input[type=text] {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 0.95rem;
+      border: 1px solid #444;
+      background: #444;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 0.5rem;
+    }
+    button:hover:not(:disabled) { background: #222; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.secondary { background: white; color: #444; }
+    .row { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 180px; }
+    .row > .actions { flex: 0 0 auto; }
+    #status {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .status-disconnected { background: #f0f0f0; color: #666; }
+    .status-connecting { background: #fff3cd; color: #856404; }
+    .status-connected { background: #d4edda; color: #155724; }
+    .status-error { background: #f8d7da; color: #721c24; }
+    #log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+      font-size: 0.85rem;
+      padding: 1rem;
+      border-radius: 4px;
+      height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .log-in { color: #9cdcfe; }
+    .log-out { color: #ce9178; }
+    .log-meta { color: #6a9955; }
+    .log-error { color: #f48771; }
+  </style>
+</head>
+<body>
+  <h1>Petit Bac — Test WebSocket</h1>
+  <p class="subtitle">Phase 2 — validation de la chaine Worker + Durable Object + WebSocket.</p>
+
+  <div class="panel">
+    <div class="row">
+      <div>
+        <label for="workerUrl">URL du Worker</label>
+        <input type="text" id="workerUrl" value="wss://petitbac.profdetweener.workers.dev" />
+      </div>
+      <div>
+        <label for="roomCode">Code de room (1 a 16 alphanum)</label>
+        <input type="text" id="roomCode" value="TEST01" maxlength="16" />
+      </div>
+      <div class="actions">
+        <label>&nbsp;</label>
+        <button id="connectBtn">Connecter</button>
+        <button id="disconnectBtn" class="secondary" disabled>Deconnecter</button>
+      </div>
+    </div>
+    <p style="margin-top: 0.75rem; margin-bottom: 0;">
+      Statut : <span id="status" class="status-disconnected">deconnecte</span>
+    </p>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <div style="flex: 1;">
+        <label for="msgInput">Message a envoyer</label>
+        <input type="text" id="msgInput" placeholder="hello" />
+      </div>
+      <div class="actions">
+        <label>&nbsp;</label>
+        <button id="sendBtn" disabled>Envoyer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <label>Journal des messages</label>
+    <div id="log"></div>
+    <button class="secondary" style="margin-top: 0.5rem;" onclick="document.getElementById('log').textContent=''">Effacer</button>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const logEl = $("log");
+    const statusEl = $("status");
+
+    let ws = null;
+
+    function setStatus(label, cls) {
+      statusEl.textContent = label;
+      statusEl.className = cls;
+    }
+
+    function log(msg, cls = "log-meta") {
+      const time = new Date().toLocaleTimeString();
+      const line = document.createElement("div");
+      line.className = cls;
+      line.textContent = `[${time}] ${msg}`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function connect() {
+      const baseUrl = $("workerUrl").value.trim().replace(/\/+$/, "");
+      const code = $("roomCode").value.trim();
+
+      if (!/^[a-zA-Z0-9]{1,16}$/.test(code)) {
+        log("Code de room invalide (1 a 16 caracteres alphanumeriques)", "log-error");
+        return;
+      }
+
+      const url = `${baseUrl}/room/${code}`;
+      log(`Connexion a ${url}...`, "log-meta");
+      setStatus("connexion...", "status-connecting");
+
+      try {
+        ws = new WebSocket(url);
+      } catch (e) {
+        log(`Erreur creation WebSocket : ${e.message}`, "log-error");
+        setStatus("erreur", "status-error");
+        return;
+      }
+
+      ws.addEventListener("open", () => {
+        log("WebSocket ouvert", "log-meta");
+        setStatus("connecte", "status-connected");
+        $("connectBtn").disabled = true;
+        $("disconnectBtn").disabled = false;
+        $("sendBtn").disabled = false;
+      });
+
+      ws.addEventListener("message", (event) => {
+        log(`<- ${event.data}`, "log-in");
+      });
+
+      ws.addEventListener("close", (event) => {
+        log(`WebSocket ferme (code=${event.code}, raison="${event.reason || ""}")`, "log-meta");
+        setStatus("deconnecte", "status-disconnected");
+        $("connectBtn").disabled = false;
+        $("disconnectBtn").disabled = true;
+        $("sendBtn").disabled = true;
+        ws = null;
+      });
+
+      ws.addEventListener("error", () => {
+        log("Erreur WebSocket (voir console navigateur pour details)", "log-error");
+        setStatus("erreur", "status-error");
+      });
+    }
+
+    function disconnect() {
+      if (ws) ws.close();
+    }
+
+    function send() {
+      const msg = $("msgInput").value;
+      if (!msg) return;
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        log("Pas connecte", "log-error");
+        return;
+      }
+      ws.send(msg);
+      log(`-> ${msg}`, "log-out");
+      $("msgInput").value = "";
+    }
+
+    $("connectBtn").addEventListener("click", connect);
+    $("disconnectBtn").addEventListener("click", disconnect);
+    $("sendBtn").addEventListener("click", send);
+    $("msgInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") send();
+    });
+  </script>
+</body>
+</html>

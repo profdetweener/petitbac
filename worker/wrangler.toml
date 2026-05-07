@@ -2,5 +2,21 @@ name = "petitbac"
 main = "src/index.ts"
 compatibility_date = "2025-05-01"
 
-# Pas de Durable Objects pour la phase 1 (Hello World).
-# Ils seront ajoutés en phase 2.
+# ===========================================
+# Durable Objects (phase 2)
+# ===========================================
+# RoomDO : une instance par room de Petit Bac.
+# Maintient l'etat de la room en memoire et gere les WebSockets.
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "RoomDO"
+
+# Migration : declare la classe RoomDO comme nouveau Durable Object.
+# `new_sqlite_classes` est OBLIGATOIRE sur le plan Workers Free
+# (les `new_classes` (KV-backed) sont reserves au plan payant).
+# Le backend SQLite est gratuit, plus moderne, et largement suffisant
+# pour notre usage (etat de room en memoire, pas de persistance lourde).
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RoomDO"]
