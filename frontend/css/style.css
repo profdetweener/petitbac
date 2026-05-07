@@ -1,0 +1,463 @@
+/* ==========================================================================
+   Petit Bac — Frontend (phase 3)
+   Palette : bleu nuit + beige, en cohérence avec sport-with-r.com
+   ========================================================================== */
+
+:root {
+  --bleu-nuit: #1a2540;
+  --bleu-nuit-clair: #2a3556;
+  --bleu-accent: #4a6fa5;
+  --beige: #f5ede0;
+  --beige-fonce: #e8dcc4;
+  --blanc: #ffffff;
+  --rouge: #c84545;
+  --vert: #4a8c5a;
+  --jaune: #d4a830;
+  --gris-texte: #5a5a5a;
+  --ombre: 0 4px 12px rgba(26, 37, 64, 0.12);
+  --ombre-forte: 0 8px 24px rgba(26, 37, 64, 0.2);
+  --rayon: 10px;
+  --rayon-sm: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--beige);
+  color: var(--bleu-nuit);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Header partagé --- */
+.app-header {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--ombre);
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.app-header .header-info {
+  font-size: 14px;
+  opacity: 0.85;
+  font-family: "Menlo", "Consolas", monospace;
+}
+
+/* --- Conteneur principal --- */
+main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.card {
+  background: var(--blanc);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  padding: 32px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.card h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.card .subtitle {
+  margin: 0 0 24px;
+  color: var(--gris-texte);
+  font-size: 14px;
+}
+
+/* --- Formulaire --- */
+.form-group {
+  margin-bottom: 18px;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--bleu-nuit);
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+  font-size: 16px;
+  font-family: inherit;
+  background: var(--beige);
+  color: var(--bleu-nuit);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--bleu-accent);
+  background: var(--blanc);
+}
+
+input.code-input {
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  font-family: "Menlo", "Consolas", monospace;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* --- Boutons --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--rayon-sm);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
+  text-decoration: none;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--bleu-nuit-clair);
+}
+
+.btn-secondary {
+  background: var(--beige-fonce);
+  color: var(--bleu-nuit);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #ddd0b3;
+}
+
+.btn-danger {
+  background: var(--rouge);
+  color: var(--blanc);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #a73a3a;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* --- Séparateur "ou" --- */
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+  color: var(--gris-texte);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--beige-fonce);
+}
+
+.divider::before { margin-right: 12px; }
+.divider::after { margin-left: 12px; }
+
+/* --- Messages d'erreur / info --- */
+.alert {
+  padding: 12px 14px;
+  border-radius: var(--rayon-sm);
+  font-size: 14px;
+  margin-bottom: 18px;
+  display: none;
+}
+
+.alert.show {
+  display: block;
+}
+
+.alert-error {
+  background: #fdecec;
+  color: var(--rouge);
+  border-left: 3px solid var(--rouge);
+}
+
+.alert-info {
+  background: #eaf2fc;
+  color: var(--bleu-accent);
+  border-left: 3px solid var(--bleu-accent);
+}
+
+/* --- Lobby : code de la room --- */
+.room-code-banner {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  padding: 20px;
+  border-radius: var(--rayon);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.room-code-banner .label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  opacity: 0.75;
+  margin-bottom: 6px;
+}
+
+.room-code-banner .code {
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 8px;
+}
+
+.room-code-banner .copy-btn {
+  margin-top: 12px;
+  background: rgba(245, 237, 224, 0.15);
+  color: var(--beige);
+  border: 1px solid rgba(245, 237, 224, 0.3);
+  padding: 6px 14px;
+  border-radius: var(--rayon-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.room-code-banner .copy-btn:hover {
+  background: rgba(245, 237, 224, 0.25);
+}
+
+/* --- Liste des joueurs --- */
+.players-section h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.players-section h3 .count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gris-texte);
+}
+
+.players-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--beige);
+  border-radius: var(--rayon-sm);
+  border-left: 3px solid var(--beige-fonce);
+}
+
+.player-item.is-host {
+  border-left-color: var(--jaune);
+}
+
+.player-item.is-self {
+  background: #eaf2fc;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.player-badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.player-badge.host {
+  background: var(--jaune);
+  color: var(--bleu-nuit);
+}
+
+.player-badge.self {
+  background: var(--bleu-accent);
+  color: var(--blanc);
+}
+
+/* --- Zone d'actions du host --- */
+.host-actions {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--beige-fonce);
+}
+
+.host-actions .info-line {
+  font-size: 13px;
+  color: var(--gris-texte);
+  margin-bottom: 12px;
+}
+
+/* --- Indicateur de connexion --- */
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--beige);
+  opacity: 0.85;
+}
+
+.connection-status .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gris-texte);
+}
+
+.connection-status.connected .dot {
+  background: var(--vert);
+  box-shadow: 0 0 6px var(--vert);
+}
+
+.connection-status.connecting .dot {
+  background: var(--jaune);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.connection-status.disconnected .dot {
+  background: var(--rouge);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* --- Toast (notifications brèves) --- */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.toast {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  padding: 12px 18px;
+  border-radius: var(--rayon-sm);
+  box-shadow: var(--ombre-forte);
+  font-size: 14px;
+  animation: slide-in 0.2s ease-out;
+  max-width: 320px;
+}
+
+.toast.error {
+  background: var(--rouge);
+  color: var(--blanc);
+}
+
+.toast.success {
+  background: var(--vert);
+  color: var(--blanc);
+}
+
+@keyframes slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* --- Responsive --- */
+@media (max-width: 600px) {
+  .app-header {
+    padding: 14px 16px;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .app-header h1 {
+    font-size: 18px;
+  }
+
+  .card {
+    padding: 24px 20px;
+  }
+
+  .room-code-banner .code {
+    font-size: 28px;
+    letter-spacing: 6px;
+  }
+}

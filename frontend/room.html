@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lobby — Petit Bac</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>🎲 Petit Bac multijoueur</h1>
+    <span class="connection-status" id="connection-status">
+      <span class="dot"></span>
+      <span class="text">connexion…</span>
+    </span>
+  </header>
+
+  <main>
+    <div class="card">
+      <div class="room-code-banner">
+        <span class="label">Code de la partie</span>
+        <div class="code" id="room-code">------</div>
+        <button class="copy-btn" id="copy-btn">Copier le code</button>
+      </div>
+
+      <div class="alert alert-error" id="error-box"></div>
+      <div class="alert alert-info" id="info-box"></div>
+
+      <div class="players-section">
+        <h3>
+          Joueurs
+          <span class="count" id="players-count">0</span>
+        </h3>
+        <ul class="players-list" id="players-list">
+          <!-- rempli dynamiquement -->
+        </ul>
+      </div>
+
+      <div class="host-actions" id="host-actions" style="display: none;">
+        <p class="info-line">
+          🛠️ Tu es l'hote de la partie. Tu peux exclure des joueurs en cliquant sur la croix.
+        </p>
+        <button class="btn btn-primary btn-block" id="btn-start" disabled>
+          Demarrer la partie (phase 4)
+        </button>
+      </div>
+
+      <div style="margin-top: 24px; text-align: center;">
+        <a href="index.html" class="btn btn-secondary btn-sm">← Retour a l'accueil</a>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script type="module" src="js/lobby.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Petit Bac multijoueur</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>🎲 Petit Bac multijoueur</h1>
+    <span class="header-info" id="server-status">connexion au serveur…</span>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Bienvenue !</h2>
+      <p class="subtitle">Choisis un pseudo, puis crée une nouvelle partie ou rejoins-en une avec un code.</p>
+
+      <div class="alert alert-error" id="error-box"></div>
+
+      <div class="form-group">
+        <label for="pseudo-input">Ton pseudo</label>
+        <input type="text" id="pseudo-input" placeholder="Ex : Max" maxlength="20" autocomplete="off">
+      </div>
+
+      <button class="btn btn-primary btn-block" id="btn-create">
+        Créer une partie
+      </button>
+
+      <div class="divider">ou</div>
+
+      <div class="form-group">
+        <label for="code-input">Code de la partie</label>
+        <input type="text" id="code-input" class="code-input" placeholder="ABC123" maxlength="6" autocomplete="off">
+      </div>
+
+      <button class="btn btn-secondary btn-block" id="btn-join">
+        Rejoindre
+      </button>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script type="module" src="js/home.js"></script>
+</body>
+</html>
