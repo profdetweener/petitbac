@@ -1,0 +1,6 @@
+name = "petitbac"
+main = "src/index.ts"
+compatibility_date = "2025-05-01"
+
+# Pas de Durable Objects pour la phase 1 (Hello World).
+# Ils seront ajoutés en phase 2.
