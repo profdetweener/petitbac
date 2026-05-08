@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lobby — Petit Bac</title>
+  <title>Partie — Petit Bac</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,7 +16,8 @@
   </header>
 
   <main>
-    <div class="card">
+    <!-- VUE 1 : LOBBY -->
+    <div class="card view" id="view-lobby" style="display: none;">
       <div class="room-code-banner">
         <span class="label">Code de la partie</span>
         <div class="code" id="room-code">------</div>
@@ -31,22 +32,228 @@
           Joueurs
           <span class="count" id="players-count">0</span>
         </h3>
-        <ul class="players-list" id="players-list">
-          <!-- rempli dynamiquement -->
-        </ul>
+        <ul class="players-list" id="players-list"></ul>
       </div>
 
       <div class="host-actions" id="host-actions" style="display: none;">
-        <p class="info-line">
-          🛠️ Tu es l'hote de la partie. Tu peux exclure des joueurs en cliquant sur la croix.
-        </p>
-        <button class="btn btn-primary btn-block" id="btn-start" disabled>
-          Demarrer la partie (phase 4)
+        <h3 style="margin-top: 24px;">⚙️ Configuration de la partie</h3>
+
+        <div class="form-group">
+          <label>Categories de la grille</label>
+          <div class="categories-presets" id="categories-presets"></div>
+          <div class="categories-custom">
+            <input
+              type="text"
+              id="custom-category-input"
+              placeholder="Ajouter une categorie personnalisee"
+              maxlength="30"
+            >
+            <button class="btn btn-secondary btn-sm" id="add-category-btn">+ Ajouter</button>
+          </div>
+          <ul class="categories-selected" id="categories-selected"></ul>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="rounds-input">Nombre de manches</label>
+            <select id="rounds-input">
+              <option value="3">3 manches</option>
+              <option value="5" selected>5 manches</option>
+              <option value="7">7 manches</option>
+              <option value="0">Illimite (jusqu'a stop manuel)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="timer-input">Duree par manche (sec)</label>
+            <input type="number" id="timer-input" value="90" min="30" max="300" step="10">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Bareme de score</label>
+          <div class="scoring-grid">
+            <div>
+              <label class="sub-label" for="score-alone">Seul a repondre</label>
+              <input type="number" id="score-alone" value="15" min="-100" max="100">
+            </div>
+            <div>
+              <label class="sub-label" for="score-unique">Unique (parmi plusieurs)</label>
+              <input type="number" id="score-unique" value="10" min="-100" max="100">
+            </div>
+            <div>
+              <label class="sub-label" for="score-duplicate">En doublon</label>
+              <input type="number" id="score-duplicate" value="5" min="-100" max="100">
+            </div>
+            <div>
+              <label class="sub-label" for="score-invalid">Vide / invalide</label>
+              <input type="number" id="score-invalid" value="0" min="-100" max="100">
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="btn-start-game">
+          🚀 Demarrer la partie
         </button>
+        <p class="info-line" style="margin-top: 8px; text-align: center;">
+          Minimum 2 joueurs connectes
+        </p>
+      </div>
+
+      <!-- Vue lecture seule pour les non-hotes : visualisation de la config en direct -->
+      <div class="guest-config" id="guest-config" style="display: none;">
+        <h3 style="margin-top: 24px;">📋 Configuration de la partie</h3>
+        <p class="info-line">L'hote configure la partie. Les parametres se mettent a jour en temps reel.</p>
+
+        <div class="form-group">
+          <label class="sub-label">Categories</label>
+          <ul class="categories-selected" id="guest-categories"></ul>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="sub-label">Nombre de manches</label>
+            <div class="readonly-value" id="guest-rounds">—</div>
+          </div>
+          <div class="form-group">
+            <label class="sub-label">Duree par manche</label>
+            <div class="readonly-value" id="guest-timer">—</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="sub-label">Bareme de score</label>
+          <div class="scoring-grid">
+            <div><label class="sub-label">Seul</label><div class="readonly-value" id="guest-score-alone">—</div></div>
+            <div><label class="sub-label">Unique</label><div class="readonly-value" id="guest-score-unique">—</div></div>
+            <div><label class="sub-label">Doublon</label><div class="readonly-value" id="guest-score-duplicate">—</div></div>
+            <div><label class="sub-label">Vide/invalide</label><div class="readonly-value" id="guest-score-invalid">—</div></div>
+          </div>
+        </div>
+
+        <p class="info-line" style="text-align: center; font-style: italic;">
+          ⏳ En attente du lancement de la partie par l'hote…
+        </p>
       </div>
 
       <div style="margin-top: 24px; text-align: center;">
         <a href="index.html" class="btn btn-secondary btn-sm">← Retour a l'accueil</a>
+      </div>
+    </div>
+
+    <!-- VUE 2 : MANCHE EN COURS -->
+    <div class="card view view-wide" id="view-round" style="display: none;">
+      <div class="round-header">
+        <div>
+          <span class="round-label">Manche</span>
+          <span class="round-number" id="round-number">1</span>
+          <span class="round-total" id="round-total"></span>
+        </div>
+        <div class="letter-display">
+          <span class="letter-label">Lettre</span>
+          <span class="letter-value" id="letter-value">?</span>
+        </div>
+        <div class="timer-display" id="timer-display">
+          <span class="timer-label">Temps restant</span>
+          <span class="timer-value" id="timer-value">--:--</span>
+        </div>
+      </div>
+
+      <form class="answers-form" id="answers-form" autocomplete="off"></form>
+
+      <div class="round-actions">
+        <button type="button" class="btn btn-danger btn-block" id="btn-stop">
+          🛑 STOP — j'ai termine
+        </button>
+        <p class="info-line" id="submission-status"></p>
+      </div>
+    </div>
+
+    <!-- VUE 3 : VALIDATION -->
+    <div class="card view view-wide" id="view-validating" style="display: none;">
+      <div class="round-header">
+        <div>
+          <span class="round-label">Manche</span>
+          <span class="round-number" id="vr-round-number">1</span>
+          <span class="round-total" id="vr-round-total"></span>
+        </div>
+        <div class="letter-display">
+          <span class="letter-label">Lettre</span>
+          <span class="letter-value" id="vr-letter-value">?</span>
+        </div>
+        <div class="round-end-reason" id="round-end-reason"></div>
+      </div>
+
+      <p class="info-line" style="margin-bottom: 16px;">
+        🗳️ Vote pour ou contre chaque reponse des autres joueurs.
+        Une reponse acceptee a la majorite simple sera validee.
+      </p>
+
+      <div class="validation-table-wrap">
+        <table class="validation-table" id="validation-table"></table>
+      </div>
+
+      <div class="host-actions" id="validation-host-actions" style="display: none;">
+        <button class="btn btn-primary btn-block" id="btn-finish-validation">
+          ✅ Calculer les scores
+        </button>
+        <button class="btn btn-danger btn-block" id="btn-end-game-validating" style="margin-top: 8px;">
+          🏁 Terminer la partie maintenant
+        </button>
+      </div>
+      <p class="info-line" id="validation-waiting" style="text-align: center;">
+        En attente de l'hote pour passer aux scores…
+      </p>
+    </div>
+
+    <!-- VUE 4 : SCORES -->
+    <div class="card view view-wide" id="view-scoring" style="display: none;">
+      <div class="round-header">
+        <div>
+          <span class="round-label">Manche</span>
+          <span class="round-number" id="sc-round-number">1</span>
+          <span class="round-total" id="sc-round-total"></span>
+          <span> &mdash; Resultats</span>
+        </div>
+        <div class="letter-display">
+          <span class="letter-label">Lettre</span>
+          <span class="letter-value" id="sc-letter-value">?</span>
+        </div>
+      </div>
+
+      <div class="scores-section">
+        <h3>Points de la manche</h3>
+        <table class="scores-table" id="round-scores-table"></table>
+      </div>
+
+      <div class="scores-section">
+        <h3>Classement cumule</h3>
+        <ol class="ranking-list" id="cumulative-ranking"></ol>
+      </div>
+
+      <div class="host-actions" id="scoring-host-actions" style="display: none;">
+        <button class="btn btn-primary btn-block" id="btn-next-round">
+          Manche suivante →
+        </button>
+        <button class="btn btn-danger btn-block" id="btn-end-game-scoring" style="margin-top: 8px;">
+          🏁 Terminer la partie maintenant
+        </button>
+      </div>
+      <p class="info-line" id="scoring-waiting" style="text-align: center;">
+        En attente de l'hote…
+      </p>
+    </div>
+
+    <!-- VUE 5 : FIN DE PARTIE -->
+    <div class="card view" id="view-finished" style="display: none;">
+      <h2 style="text-align: center;">🏆 Fin de la partie !</h2>
+      <ol class="ranking-list ranking-final" id="final-ranking"></ol>
+      <div class="host-actions" id="finished-host-actions" style="display: none; margin-top: 24px;">
+        <button class="btn btn-primary btn-block" id="btn-back-lobby">
+          🔄 Retour au lobby (rejouer)
+        </button>
+      </div>
+      <div style="margin-top: 24px; text-align: center;">
+        <a href="index.html" class="btn btn-secondary btn-sm">← Quitter</a>
       </div>
     </div>
   </main>
