@@ -199,13 +199,31 @@ export class RoomDO {
       return;
     }
 
-    // Cas premier join : cherche si un autre pseudo equivalent existe
-    for (const p of this.players.keys()) {
-      if (pseudosEqual(p, pseudo)) {
+    // Pas de match strict : on cherche un pseudo equivalent (casse / accents).
+    // Si on en trouve un dont la session est DECONNECTEE, c'est une reconnexion :
+    // l'utilisateur a peut-etre retape son pseudo en "max" au lieu de "Max", ou
+    // sans son accent. On le reconnecte sur sa session existante.
+    // S'il existe mais est encore CONNECTE, c'est un conflit, on refuse.
+    for (const [existingPseudo, existingSession] of this.players.entries()) {
+      if (!pseudosEqual(existingPseudo, pseudo)) continue;
+      if (existingSession.ws !== null) {
         this.sendError(ws, "PSEUDO_TAKEN", "Pseudo deja pris (variante).");
         ws.close();
         return;
       }
+      // Reconnexion case-insensitive : on garde le pseudo original
+      existingSession.ws = ws;
+      this.wsToPseudo.set(ws, existingPseudo);
+      this.sendJoinedSnapshot(ws, existingPseudo);
+      if (
+        this.phase === "lobby" &&
+        this.config &&
+        existingPseudo !== this.hostPseudo
+      ) {
+        this.send(ws, { type: "config_update", config: this.config });
+      }
+      this.broadcastRoomState();
+      return;
     }
 
     // Permet de rejoindre meme en cours de partie (in_round, validating, scoring).

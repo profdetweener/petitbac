@@ -22,12 +22,37 @@ import { initFinishedView } from "./view-finished.js";
 // ===========================================
 
 const params = new URLSearchParams(window.location.search);
-const roomCode = (params.get("code") || sessionStorage.getItem("petitbac_room") || "").toUpperCase();
-const pseudo = sessionStorage.getItem("petitbac_pseudo") || "";
+
+// --- Helper de stockage (meme implementation que home.js) ---
+const storage = (() => {
+  function tryStorage(s) {
+    try {
+      const k = "__pbac_test__";
+      s.setItem(k, "1");
+      s.removeItem(k);
+      return s;
+    } catch {
+      return null;
+    }
+  }
+  return tryStorage(window.localStorage) ?? tryStorage(window.sessionStorage) ?? {
+    _m: new Map(),
+    getItem(k) { return this._m.get(k) ?? null; },
+    setItem(k, v) { this._m.set(k, v); },
+    removeItem(k) { this._m.delete(k); },
+  };
+})();
+
+const roomCode = (params.get("code") || storage.getItem("petitbac_room") || "").toUpperCase();
+const pseudo = storage.getItem("petitbac_pseudo") || "";
 
 if (!roomCode || !pseudo) {
   window.location.href = "index.html";
 }
+
+// On (re)stocke en localStorage : si l'utilisateur arrive ici via un lien
+// direct (?code=XXX) sans passer par l'accueil, ca permet la reprise plus tard.
+storage.setItem("petitbac_room", roomCode);
 
 document.getElementById("room-code").textContent = roomCode;
 
