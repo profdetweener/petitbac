@@ -147,6 +147,11 @@ conn.on("joined", (msg) => {
       categories: msg.config.categories,
       timerSeconds: msg.config.timerSeconds,
       roundEndsAt: msg.roundEndsAt ?? Date.now(),
+      // Reconnexion / refresh : pre-remplit la grille avec les reponses
+      // que le serveur a deja recues de notre part. null si on n'avait
+      // rien envoye, ou si on rejoint pour la premiere fois en cours
+      // de manche (on n'aura alors pas encore d'historique).
+      previousAnswers: msg.myAnswers ?? null,
     });
   } else if (msg.phase === "validating" && msg.currentResult) {
     state.renderValidationStart({

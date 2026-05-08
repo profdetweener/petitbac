@@ -805,6 +805,12 @@ export class RoomDO {
       this.phase === "finished"
         ? this.snapshotPlayers().sort((a, b) => b.totalScore - a.totalScore)
         : null;
+    // Reponses propres du joueur pour la manche en cours (utilise pour
+    // restaurer la grille apres une deconnexion / refresh en in_round).
+    // On n'envoie QUE les siennes : les reponses des autres restent
+    // confidentielles jusqu'a la phase de validation.
+    const myAnswers =
+      this.phase === "in_round" ? this.answers[pseudo] ?? null : null;
     this.send(ws, {
       type: "joined",
       pseudo,
@@ -819,6 +825,7 @@ export class RoomDO {
       roundEndsAt: this.roundEndsAt,
       currentResult: this.currentResult,
       finalRanking,
+      myAnswers,
     });
   }
 

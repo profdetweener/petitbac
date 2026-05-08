@@ -31,6 +31,11 @@ export function initRoundView(state, conn) {
 
   /**
    * Construit le formulaire avec un input par categorie.
+   *
+   * Si msg.previousAnswers est present (cas reconnexion / refresh en
+   * pleine manche), on pre-remplit les inputs avec les valeurs deja
+   * envoyees au serveur, et on met immediatement a jour l'etat du
+   * bouton STOP en consequence.
    */
   state.renderRoundStart = function (msg) {
     stopped = false;
@@ -63,15 +68,37 @@ export function initRoundView(state, conn) {
       input.autocomplete = "off";
       input.spellcheck = false;
       input.dataset.category = category;
+      // Pre-remplissage en cas de reconnexion : le serveur nous a renvoye
+      // les reponses qu'on avait deja envoyees.
+      if (msg.previousAnswers && typeof msg.previousAnswers[category] === "string") {
+        input.value = msg.previousAnswers[category];
+      }
       row.appendChild(label);
       row.appendChild(input);
       formEl.appendChild(row);
       inputs[category] = input;
     });
 
-    // Focus sur la premiere case
-    const firstInput = formEl.querySelector("input");
-    if (firstInput) firstInput.focus();
+    // Si on a pre-rempli des reponses, met a jour l'etat du bouton STOP
+    // (sinon il reste grise alors que la grille est peut-etre deja complete)
+    // et indique au joueur que ses reponses ont ete restaurees.
+    if (msg.previousAnswers && Object.keys(msg.previousAnswers).length > 0) {
+      const nonEmpty = Object.values(msg.previousAnswers).filter(
+        (v) => typeof v === "string" && v.trim().length > 0
+      ).length;
+      if (nonEmpty > 0) {
+        showToast(`Tes ${nonEmpty} reponses ont ete restaurees.`, {
+          type: "success",
+          duration: 2500,
+        });
+      }
+      refreshStopButton();
+    }
+
+    // Focus sur la premiere case vide (ou la premiere tout court)
+    const firstEmpty = Object.values(inputs).find((i) => i.value.trim().length === 0);
+    const focusTarget = firstEmpty ?? formEl.querySelector("input");
+    if (focusTarget) focusTarget.focus();
 
     // Demarrer le compte a rebours
     startCountdown(msg.roundEndsAt);

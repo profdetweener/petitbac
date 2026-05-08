@@ -154,6 +154,10 @@ export type ServerMessage =
       roundEndsAt: number | null;       // timestamp epoch ms
       currentResult: RoundResult | null;
       finalRanking: PlayerInfo[] | null;
+      // Reponses propres du joueur pour la manche en cours (in_round seulement),
+      // permet de restaurer la grille apres reconnexion / refresh.
+      // null en dehors de in_round, ou si le joueur n'a encore rien soumis.
+      myAnswers: Record<string, string> | null;
     }
   | {
       type: "room_state";
