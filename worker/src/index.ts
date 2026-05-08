@@ -1,55 +1,86 @@
 /**
- * Petit Bac Multijoueur — Worker (phase 2 : squelette WebSocket)
+ * Petit Bac Multijoueur — Worker (phase 4 : routeur, inchange depuis la phase 3).
  *
  * Routes :
- *   GET  /                 → "OK" (santé)
- *   GET  /ping             → JSON de santé
- *   GET  /room/:code       → upgrade WebSocket vers le Durable Object RoomDO
- *
- * Le Durable Object gère l'état de la room et fait l'echo des messages
- * (la vraie logique de jeu arrivera en phase 3+).
+ *   GET  /                       → "OK" (sante)
+ *   GET  /ping                   → JSON de sante
+ *   POST /rooms                  → cree une nouvelle room avec un code unique
+ *   GET  /rooms/:code/exists     → verifie si une room existe
+ *   GET  /room/:code             → upgrade WebSocket vers le Durable Object RoomDO
  */
 
+import { ROOM_CONFIG } from "./messages";
 export { RoomDO } from "./room";
 
 export interface Env {
   ROOMS: DurableObjectNamespace;
 }
 
-// CORS minimal pour autoriser le frontend (GitHub Pages plus tard, local pour l'instant).
-// En phase 2 on est encore en local (file:// ou http://localhost), donc on autorise tout.
-// On restreindra à l'origine GitHub Pages exacte en phase 3.
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
+
+const ROOM_CODE_REGEX = new RegExp(
+  `^[${ROOM_CONFIG.CODE_ALPHABET}]{${ROOM_CONFIG.CODE_LENGTH}}$`
+);
+
+function jsonResponse(data: unknown, init?: ResponseInit): Response {
+  return new Response(JSON.stringify(data), {
+    ...init,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      ...CORS_HEADERS,
+      ...(init?.headers ?? {}),
+    },
+  });
+}
+
+function generateRoomCode(): string {
+  const alphabet = ROOM_CONFIG.CODE_ALPHABET;
+  let code = "";
+  const buf = new Uint8Array(ROOM_CONFIG.CODE_LENGTH);
+  crypto.getRandomValues(buf);
+  for (let i = 0; i < ROOM_CONFIG.CODE_LENGTH; i++) {
+    code += alphabet[buf[i] % alphabet.length];
+  }
+  return code;
+}
+
+async function roomExists(env: Env, code: string): Promise<boolean> {
+  const id = env.ROOMS.idFromName(code);
+  const stub = env.ROOMS.get(id);
+  const res = await stub.fetch("https://internal/__internal/exists");
+  const data = (await res.json()) as { exists: boolean };
+  return data.exists;
+}
+
+async function markRoomInitialized(env: Env, code: string): Promise<void> {
+  const id = env.ROOMS.idFromName(code);
+  const stub = env.ROOMS.get(id);
+  await stub.fetch("https://internal/__internal/init");
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    // Preflight CORS
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: CORS_HEADERS });
     }
 
-    // Endpoint /ping (santé)
     if (url.pathname === "/ping") {
-      return Response.json(
-        {
-          status: "ok",
-          service: "petitbac",
-          phase: 2,
-          timestamp: new Date().toISOString(),
-        },
-        { headers: CORS_HEADERS }
-      );
+      return jsonResponse({
+        status: "ok",
+        service: "petitbac",
+        phase: 4,
+        timestamp: new Date().toISOString(),
+      });
     }
 
-    // Endpoint racine (santé lisible)
     if (url.pathname === "/") {
-      return new Response("OK — Petit Bac Worker (phase 2)\n", {
+      return new Response("OK — Petit Bac Worker (phase 4)\n", {
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
           ...CORS_HEADERS,
@@ -57,13 +88,38 @@ export default {
       });
     }
 
-    // Endpoint WebSocket : /room/:code
-    // Le code de room sert d'identifiant unique pour le Durable Object.
-    const roomMatch = url.pathname.match(/^\/room\/([a-zA-Z0-9]{1,16})$/);
-    if (roomMatch) {
-      const roomCode = roomMatch[1].toUpperCase();
+    // POST /rooms : creation d'une room avec code unique
+    if (url.pathname === "/rooms" && request.method === "POST") {
+      // On essaie quelques codes au cas ou collision (extremement rare)
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const code = generateRoomCode();
+        const exists = await roomExists(env, code);
+        if (!exists) {
+          await markRoomInitialized(env, code);
+          return jsonResponse({ code });
+        }
+      }
+      return jsonResponse(
+        { error: "Impossible de generer un code unique." },
+        { status: 500 }
+      );
+    }
 
-      // Upgrade WebSocket obligatoire : refuse si l'en-tête manque
+    // GET /rooms/:code/exists
+    const existsMatch = url.pathname.match(/^\/rooms\/([A-Z0-9]+)\/exists$/);
+    if (existsMatch && request.method === "GET") {
+      const code = existsMatch[1].toUpperCase();
+      if (!ROOM_CODE_REGEX.test(code)) {
+        return jsonResponse({ exists: false });
+      }
+      const exists = await roomExists(env, code);
+      return jsonResponse({ exists });
+    }
+
+    // GET /room/:code (upgrade WebSocket)
+    const wsMatch = url.pathname.match(/^\/room\/([A-Z0-9]+)$/);
+    if (wsMatch) {
+      const code = wsMatch[1].toUpperCase();
       const upgradeHeader = request.headers.get("Upgrade");
       if (upgradeHeader !== "websocket") {
         return new Response("Expected WebSocket upgrade", {
@@ -71,10 +127,7 @@ export default {
           headers: CORS_HEADERS,
         });
       }
-
-      // On délègue au Durable Object correspondant à ce code de room.
-      // idFromName produit un ID déterministe à partir du nom : même code → même DO.
-      const id = env.ROOMS.idFromName(roomCode);
+      const id = env.ROOMS.idFromName(code);
       const stub = env.ROOMS.get(id);
       return stub.fetch(request);
     }
