@@ -24,6 +24,13 @@ export function initRoundView(state, conn) {
   const stopBtn = document.getElementById("btn-stop");
   const submissionStatusEl = document.getElementById("submission-status");
 
+  // Refs barre sticky mobile (peuvent etre absentes sur les anciens HTML)
+  const rsbLetterEl = document.getElementById("rsb-letter");
+  const rsbRoundNumEl = document.getElementById("rsb-round-num");
+  const rsbRoundTotalEl = document.getElementById("rsb-round-total");
+  const rsbTimerEl = document.getElementById("rsb-timer");
+  const rsbEl = document.getElementById("round-sticky-bar");
+
   let timerIntervalId = null;
   let inputs = {};       // category -> input element
   let saveTimeoutId = null;
@@ -52,6 +59,12 @@ export function initRoundView(state, conn) {
     }
     letterValueEl.textContent = msg.letter;
 
+    // Sticky bar (mobile)
+    if (rsbLetterEl) rsbLetterEl.textContent = msg.letter;
+    if (rsbRoundNumEl) rsbRoundNumEl.textContent = msg.roundNumber;
+    if (rsbRoundTotalEl) rsbRoundTotalEl.textContent = total > 0 ? `/${total}` : "";
+    if (rsbEl) rsbEl.classList.remove("stopped");
+
     // Construire le formulaire
     formEl.innerHTML = "";
     inputs = {};
@@ -67,6 +80,12 @@ export function initRoundView(state, conn) {
       input.maxLength = LIMITS.MAX_ANSWER_LEN;
       input.autocomplete = "off";
       input.spellcheck = false;
+      // Optimisations mobile : majuscule auto sur le 1er caractere,
+      // pas de correction auto (qui transforme les noms propres),
+      // bouton "Suivant" / "OK" sur le clavier virtuel.
+      input.setAttribute("autocapitalize", "words");
+      input.setAttribute("autocorrect", "off");
+      input.setAttribute("enterkeyhint", idx === msg.categories.length - 1 ? "done" : "next");
       input.dataset.category = category;
       // Pre-remplissage en cas de reconnexion : le serveur nous a renvoye
       // les reponses qu'on avait deja envoyees.
@@ -111,6 +130,11 @@ export function initRoundView(state, conn) {
       if (remainingMs <= 0) {
         timerValueEl.textContent = "00:00";
         timerDisplayEl.classList.add("critical");
+        if (rsbTimerEl) rsbTimerEl.textContent = "00:00";
+        if (rsbEl) {
+          rsbEl.classList.remove("warning");
+          rsbEl.classList.add("critical");
+        }
         clearInterval(timerIntervalId);
         timerIntervalId = null;
         return;
@@ -118,12 +142,17 @@ export function initRoundView(state, conn) {
       const totalSec = Math.ceil(remainingMs / 1000);
       const m = Math.floor(totalSec / 60);
       const s = totalSec % 60;
-      timerValueEl.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      const formatted = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      timerValueEl.textContent = formatted;
+      if (rsbTimerEl) rsbTimerEl.textContent = formatted;
       timerDisplayEl.classList.remove("warning", "critical");
+      if (rsbEl) rsbEl.classList.remove("warning", "critical");
       if (totalSec <= 5) {
         timerDisplayEl.classList.add("critical");
+        if (rsbEl) rsbEl.classList.add("critical");
       } else if (totalSec <= 15) {
         timerDisplayEl.classList.add("warning");
+        if (rsbEl) rsbEl.classList.add("warning");
       }
     }
     tick();
@@ -218,6 +247,7 @@ export function initRoundView(state, conn) {
     stopBtn.disabled = true;
     stopBtn.textContent = "Manche stoppee, en attente de la suite…";
     submissionStatusEl.textContent = "Tes reponses ont ete envoyees.";
+    if (rsbEl) rsbEl.classList.add("stopped");
     showToast("STOP envoye.", { type: "success", duration: 1500 });
   });
 
