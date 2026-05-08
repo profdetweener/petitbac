@@ -1,0 +1,46 @@
+name: Deploy frontend to GitHub Pages
+
+on:
+  # Declenche a chaque push sur main qui touche le dossier frontend/
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-pages.yml"
+  # Permet de relancer manuellement le deploiement depuis l'onglet Actions
+  workflow_dispatch:
+
+# Permissions necessaires pour deployer sur Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Empeche deux deploiements concurrents : si un nouveau push arrive
+# pendant qu'un deploy est en cours, le precedent est annule.
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # On ne deploie QUE le contenu de frontend/, pas tout le repo
+          path: "./frontend"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
