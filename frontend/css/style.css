@@ -360,16 +360,477 @@ input.code-input {
 .ranking-list.ranking-final li:nth-child(2) { border-left-color: #aaa; background: #f0f0f0; }
 .ranking-list.ranking-final li:nth-child(3) { border-left-color: #c98c5a; background: #f5e6dc; }
 
-@media (max-width: 600px) {
-  .app-header { padding: 14px 16px; flex-direction: column; gap: 8px; align-items: flex-start; }
-  .app-header h1 { font-size: 18px; }
-  .card { padding: 24px 20px; }
-  .room-code-banner .code { font-size: 28px; letter-spacing: 6px; }
-  .form-row, .scoring-grid { grid-template-columns: 1fr; }
-  .round-header { grid-template-columns: 1fr; gap: 12px; text-align: center; }
-  .timer-display { text-align: center; }
-  .answer-row { flex-direction: column; align-items: stretch; }
-  .answer-row label { flex: none; }
-  .validation-table { font-size: 12px; }
-  .validation-table th, .validation-table td { padding: 6px 8px; }
+/* ==========================================================================
+   Helpers ajoutes pour le scoring (anciens styles inline, deplaces en CSS)
+   ========================================================================== */
+.score-cell-points { font-weight: 700; }
+.score-cell-answer { font-size: 11px; color: var(--gris-texte); font-style: italic; }
+.score-total-cell {
+  font-weight: 700;
+  background: var(--bleu-nuit-clair);
+  color: var(--beige);
+}
+
+/* ==========================================================================
+   Banniere "Reprendre la partie en cours" (page d'accueil)
+   ========================================================================== */
+.resume-banner {
+  display: none; /* visible via .show ajoute par JS si pseudo+code en localStorage */
+  background: #eaf2fc;
+  border-left: 3px solid var(--bleu-accent);
+  border-radius: var(--rayon-sm);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.resume-banner.show { display: flex; }
+.resume-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  color: var(--bleu-nuit);
+  min-width: 0;
+}
+.resume-banner-text strong { font-size: 14px; }
+.resume-banner-text span { font-size: 13px; color: var(--gris-texte); }
+.resume-banner-text span span {
+  color: var(--bleu-nuit);
+  font-weight: 600;
+  font-family: "Menlo", "Consolas", monospace;
+}
+.resume-banner-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+#resume-banner-dismiss {
+  font-size: 18px;
+  font-weight: 700;
+  padding: 6px 10px;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   Barre sticky compacte (visible uniquement sur mobile dans la vue manche)
+   ========================================================================== */
+.round-sticky-bar {
+  display: none; /* affichee en mobile via media query */
+}
+
+/* ==========================================================================
+   MOBILE — tablettes & telephones (<= 760px)
+   ========================================================================== */
+@media (max-width: 760px) {
+  /* --- Layout global --- */
+  .app-header {
+    padding: 12px 16px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    /* Securise l'encoche iPhone */
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .app-header h1 { font-size: 17px; }
+  .app-header .header-info,
+  .app-header .connection-status .text { font-size: 12px; }
+
+  main {
+    padding: 16px 12px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .card { padding: 20px 16px; max-width: 100%; }
+  .card.view-wide { max-width: 100%; }
+
+  /* --- Forms : grilles 2 cols -> 1 col --- */
+  .form-row,
+  .scoring-grid { grid-template-columns: 1fr; gap: 12px; }
+
+  /* Inputs / boutons : tap target >= 44px (Apple HIG) */
+  input[type="text"], input[type="number"], select {
+    padding: 14px 14px;
+    font-size: 16px; /* evite le zoom auto iOS */
+    min-height: 48px;
+  }
+  .btn { padding: 14px 20px; min-height: 48px; font-size: 15px; }
+  .btn-sm { padding: 10px 14px; min-height: 38px; font-size: 13px; }
+
+  /* Banniere reprise sur mobile : passe en colonne pour eviter le tassement */
+  .resume-banner { flex-direction: column; align-items: stretch; gap: 10px; }
+  .resume-banner-actions { justify-content: flex-end; }
+  .resume-banner-actions #resume-banner-btn { flex: 1; }
+
+  /* --- Lobby : code de room --- */
+  .room-code-banner { padding: 16px; margin-bottom: 16px; }
+  .room-code-banner .code { font-size: 32px; letter-spacing: 6px; }
+  .room-code-banner .copy-btn { padding: 10px 16px; font-size: 14px; min-height: 40px; }
+
+  /* --- Lobby : categories --- */
+  .categories-presets { gap: 6px; }
+  .category-preset-btn {
+    padding: 10px 14px;
+    font-size: 14px;
+    min-height: 40px;
+  }
+  .categories-custom {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .categories-custom .btn { width: 100%; }
+  .categories-selected li {
+    padding: 8px 12px 8px 14px;
+    font-size: 14px;
+  }
+  .categories-selected li button {
+    font-size: 22px;
+    padding: 0 4px;
+    min-width: 28px;
+  }
+
+  /* --- Lobby : bareme score --- */
+  .scoring-grid input { font-size: 18px; padding: 12px 10px; }
+
+  /* --- Lobby : liste joueurs --- */
+  .player-item { padding: 12px 14px; }
+
+  /* ==========================================================================
+     VUE MANCHE
+     ========================================================================== */
+  /* On masque le gros header pendant la manche : on garde la barre sticky a la place. */
+  #view-round .round-header {
+    display: none;
+  }
+
+  #view-round .round-sticky-bar {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin: -20px -16px 16px;
+    padding: 10px 16px;
+    /* Compense le safe area top (notch / dynamic island) */
+    padding-top: max(10px, env(safe-area-inset-top));
+    background: var(--bleu-nuit);
+    color: var(--beige);
+    border-radius: var(--rayon) var(--rayon) 0 0;
+    box-shadow: var(--ombre);
+  }
+  .round-sticky-bar.stopped { opacity: 0.65; }
+
+  .rsb-letter {
+    font-family: Georgia, serif;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    background: var(--beige);
+    color: var(--bleu-nuit);
+    border-radius: 8px;
+    padding: 4px 12px;
+    min-width: 44px;
+    text-align: center;
+  }
+  .rsb-round {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.85;
+  }
+  .rsb-timer {
+    font-family: "Menlo", "Consolas", monospace;
+    font-size: 22px;
+    font-weight: 700;
+    min-width: 64px;
+    text-align: right;
+  }
+  .round-sticky-bar.warning .rsb-timer { color: var(--jaune); }
+  .round-sticky-bar.critical .rsb-timer { color: var(--rouge); animation: pulse 0.6s ease-in-out infinite; }
+
+  /* Inputs de la manche */
+  .answer-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .answer-row label {
+    flex: none;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .answer-row input {
+    font-size: 16px;
+    padding: 14px 14px;
+    min-height: 48px;
+  }
+
+  /* Bouton STOP : bien visible, large */
+  #btn-stop {
+    font-size: 17px;
+    padding: 16px 20px;
+    min-height: 56px;
+  }
+  /* Quand on a stoppe, le bouton retombe a une taille normale */
+  #btn-stop:disabled { font-size: 15px; min-height: 48px; }
+
+  /* ==========================================================================
+     VUE VALIDATION : tableau -> cartes par joueur
+     ========================================================================== */
+  /* Le wrap perd son scroll horizontal (on n'en a plus besoin) */
+  #view-validating .validation-table-wrap {
+    overflow: visible;
+    border: none;
+    background: transparent;
+    margin-bottom: 16px;
+  }
+  /* Le tableau lui-meme devient un conteneur en blocs */
+  #view-validating .validation-table,
+  #view-validating .validation-table thead,
+  #view-validating .validation-table tbody,
+  #view-validating .validation-table tr,
+  #view-validating .validation-table th,
+  #view-validating .validation-table td {
+    display: block;
+    width: 100%;
+  }
+  /* Header global (Joueur / Categorie 1 / ...) : on le cache, on a le pseudo dans chaque carte */
+  #view-validating .validation-table thead { display: none; }
+
+  /* Chaque <tr> = une carte joueur */
+  #view-validating .validation-table tbody tr {
+    background: var(--blanc);
+    border: 1px solid var(--beige-fonce);
+    border-radius: var(--rayon-sm);
+    margin-bottom: 14px;
+    padding: 0;
+    overflow: hidden;
+  }
+  #view-validating .validation-table tbody tr.is-self {
+    border-color: var(--bleu-accent);
+    box-shadow: 0 0 0 1px var(--bleu-accent) inset;
+  }
+  #view-validating .validation-table tbody tr:nth-child(even) td { background: transparent; }
+
+  /* Cellule pseudo : header de la carte */
+  #view-validating .validation-table .category-cell {
+    background: var(--bleu-nuit) !important;
+    color: var(--beige);
+    font-weight: 700;
+    font-size: 15px;
+    padding: 12px 14px;
+    border: none;
+    white-space: normal;
+  }
+
+  /* Chaque cellule reponse : ligne avec label categorie + reponse + boutons */
+  #view-validating .validation-table tbody td[data-label] {
+    padding: 12px 14px;
+    border: none;
+    border-top: 1px solid var(--beige-fonce);
+    background: var(--blanc);
+    text-align: left;
+  }
+  /* Label de la categorie (injecte via ::before, lu depuis data-label) */
+  #view-validating .validation-table tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gris-texte);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  /* La cellule de validation : reponse + boutons en row, boutons GROS */
+  #view-validating .validation-cell {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  #view-validating .validation-cell .answer-text {
+    flex: 1 1 100%;
+    min-width: 0;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 500;
+  }
+  #view-validating .validation-cell .answer-empty,
+  #view-validating .validation-cell .answer-bad-letter {
+    font-size: 15px;
+  }
+  #view-validating .vote-buttons {
+    gap: 10px;
+    width: 100%;
+    justify-content: stretch;
+  }
+  #view-validating .vote-btn {
+    flex: 1;
+    width: auto;
+    height: 48px;
+    border-radius: var(--rayon-sm);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  #view-validating .vote-btn:hover { transform: none; }
+
+  /* ==========================================================================
+     VUE SCORING : meme pattern, tableau -> cartes par joueur
+     ========================================================================== */
+  #view-scoring .scores-table,
+  #view-scoring .scores-table thead,
+  #view-scoring .scores-table tbody,
+  #view-scoring .scores-table tr,
+  #view-scoring .scores-table th,
+  #view-scoring .scores-table td {
+    display: block;
+    width: 100%;
+  }
+  #view-scoring .scores-table thead { display: none; }
+  #view-scoring .scores-table tfoot { display: none; }
+
+  #view-scoring .scores-table tbody tr {
+    background: var(--blanc);
+    border: 1px solid var(--beige-fonce);
+    border-radius: var(--rayon-sm);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  #view-scoring .scores-table tbody tr.is-self {
+    border-color: var(--bleu-accent);
+    box-shadow: 0 0 0 1px var(--bleu-accent) inset;
+  }
+
+  /* Pseudo : header de carte */
+  #view-scoring .scores-table .col-category {
+    background: var(--bleu-nuit) !important;
+    color: var(--beige);
+    font-weight: 700;
+    font-size: 15px;
+    padding: 12px 14px;
+    text-align: left;
+    border: none;
+  }
+
+  /* Cellule total : pleine largeur dans la carte, en bas */
+  #view-scoring .scores-table .score-total-cell {
+    padding: 12px 14px;
+    text-align: right;
+    font-size: 18px;
+    border: none;
+    border-top: 2px solid var(--beige-fonce);
+  }
+  #view-scoring .scores-table .score-total-cell::before {
+    content: "Total manche";
+    float: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.85;
+    font-weight: 600;
+    padding-top: 4px;
+  }
+
+  /* Cellules score par categorie : en grille 2 cols pour densite */
+  #view-scoring .scores-table tbody td[data-label]:not(.score-total-cell) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border: none;
+    border-top: 1px solid var(--beige-fonce);
+    text-align: left;
+  }
+  #view-scoring .scores-table tbody td[data-label]:not(.score-total-cell)::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gris-texte);
+    font-weight: 600;
+  }
+  #view-scoring .scores-table .score-cell-points {
+    margin-left: auto;
+    font-size: 18px;
+    min-width: 36px;
+    text-align: right;
+  }
+  #view-scoring .scores-table .score-cell-answer {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: right;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--gris-texte);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ==========================================================================
+     CLASSEMENT (cumule + final)
+     ========================================================================== */
+  .ranking-list li {
+    padding: 14px 14px;
+    gap: 14px;
+  }
+  .ranking-list li::before {
+    font-size: 20px;
+    min-width: 28px;
+  }
+  .ranking-list li .rank-pseudo { font-size: 16px; }
+  .ranking-list li .rank-score { font-size: 16px; }
+
+  /* ==========================================================================
+     TOASTS
+     ========================================================================== */
+  .toast-container {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .toast {
+    max-width: 100%;
+    font-size: 14px;
+  }
+}
+
+/* ==========================================================================
+   PETITS ECRANS (<= 380px) — derniers ajustements
+   ========================================================================== */
+@media (max-width: 380px) {
+  .app-header h1 { font-size: 15px; }
+  .card { padding: 16px 12px; }
+  .room-code-banner .code { font-size: 26px; letter-spacing: 4px; }
+  .rsb-letter { font-size: 28px; padding: 4px 10px; }
+  .rsb-timer { font-size: 20px; min-width: 56px; }
+  .rsb-round { font-size: 12px; }
+}
+
+/* ==========================================================================
+   PAYSAGE TELEPHONE (hauteur faible) — on compresse pour laisser place au clavier
+   ========================================================================== */
+@media (max-width: 900px) and (max-height: 500px) {
+  .app-header { padding: 8px 16px; }
+  .app-header h1 { font-size: 15px; }
+  main { padding: 8px 12px; }
+  .card { padding: 14px; }
+  #view-round .round-sticky-bar { padding: 6px 12px; }
+  .rsb-letter { font-size: 24px; padding: 2px 10px; }
+  .rsb-timer { font-size: 18px; }
+  .answer-row { gap: 4px; }
+  .answers-form { gap: 8px; margin-bottom: 16px; }
 }

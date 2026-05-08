@@ -123,15 +123,21 @@ export function initValidatingView(state, conn) {
     const tbody = document.createElement("tbody");
     for (const pseudo of currentPseudos) {
       const tr = document.createElement("tr");
+      tr.dataset.pseudo = pseudo;
+      const isMe = pseudo === state.myPseudo;
+      if (isMe) tr.classList.add("is-self");
       const tdPseudo = document.createElement("td");
       tdPseudo.className = "category-cell";
-      tdPseudo.textContent = pseudo + (pseudo === state.myPseudo ? " (toi)" : "");
+      tdPseudo.textContent = pseudo + (isMe ? " (toi)" : "");
       tr.appendChild(tdPseudo);
 
       for (const category of currentCategories) {
         const td = document.createElement("td");
         td.dataset.pseudo = pseudo;
         td.dataset.category = category;
+        // Pour le layout mobile (cartes) : on a besoin de connaitre le nom
+        // de la categorie sans relire le header.
+        td.dataset.label = category;
         renderCell(td, pseudo, category);
         tr.appendChild(td);
       }

@@ -70,13 +70,17 @@ export function initScoringView(state, conn) {
     const tbody = document.createElement("tbody");
     for (const pseudo of pseudos) {
       const tr = document.createElement("tr");
+      tr.dataset.pseudo = pseudo;
+      const isMe = pseudo === state.myPseudo;
+      if (isMe) tr.classList.add("is-self");
       const tdPseudo = document.createElement("td");
       tdPseudo.className = "col-category";
-      tdPseudo.textContent = pseudo + (pseudo === state.myPseudo ? " (toi)" : "");
+      tdPseudo.textContent = pseudo + (isMe ? " (toi)" : "");
       tr.appendChild(tdPseudo);
 
       for (const category of categories) {
         const td = document.createElement("td");
+        td.dataset.label = category;
         const score = result.cellScores[pseudo]?.[category] ?? 0;
         const answer = result.answers[pseudo]?.[category] ?? "";
         td.classList.add("score-cell");
@@ -90,12 +94,10 @@ export function initScoringView(state, conn) {
           td.classList.add("invalid");
         }
         const scoreEl = document.createElement("div");
-        scoreEl.style.fontWeight = "700";
+        scoreEl.className = "score-cell-points";
         scoreEl.textContent = score;
         const answerEl = document.createElement("div");
-        answerEl.style.fontSize = "11px";
-        answerEl.style.color = "#5a5a5a";
-        answerEl.style.fontStyle = "italic";
+        answerEl.className = "score-cell-answer";
         answerEl.textContent = answer.trim() ? answer : "—";
         td.appendChild(scoreEl);
         td.appendChild(answerEl);
@@ -104,9 +106,8 @@ export function initScoringView(state, conn) {
 
       // Cellule total ligne
       const tdTotal = document.createElement("td");
-      tdTotal.style.fontWeight = "700";
-      tdTotal.style.background = "var(--bleu-nuit-clair)";
-      tdTotal.style.color = "var(--beige)";
+      tdTotal.className = "score-total-cell";
+      tdTotal.dataset.label = "Total";
       tdTotal.textContent = result.scoreByPlayer[pseudo] ?? 0;
       tr.appendChild(tdTotal);
 

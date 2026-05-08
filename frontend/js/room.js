@@ -1,10 +1,13 @@
 /**
  * Logique de la page room :
  *  - Lit le code de room dans la query string
- *  - Recupere le pseudo depuis sessionStorage
+ *  - Recupere le pseudo depuis localStorage
  *  - Ouvre la WebSocket et envoie le `join`
  *  - Affiche la liste des joueurs en temps reel via `room_state`
  *  - Si on est host, affiche les boutons "kick"
+ *
+ * NOTE : ce fichier semble ne plus etre charge par room.html (remplace par
+ * lobby.js). Il est conserve pour reference / compatibilite eventuelle.
  */
 
 const $ = (id) => document.getElementById(id);
@@ -24,7 +27,7 @@ const leaveBtn = $("leaveBtn");
 const params = new URLSearchParams(window.location.search);
 const roomCode = (params.get("code") || "").toUpperCase();
 let pseudo = "";
-try { pseudo = sessionStorage.getItem("petitbac_pseudo") || ""; } catch { /* ignore */ }
+try { pseudo = (localStorage.getItem("petitbac_pseudo") || sessionStorage.getItem("petitbac_pseudo") || ""); } catch { /* ignore */ }
 
 let myPseudo = pseudo;
 let isHost = false;

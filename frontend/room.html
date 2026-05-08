@@ -2,7 +2,9 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <meta name="format-detection" content="telephone=no">
   <title>Partie — Petit Bac</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -123,10 +125,10 @@
         <div class="form-group">
           <label class="sub-label">Bareme de score</label>
           <div class="scoring-grid">
-            <div><label class="sub-label">Seul</label><div class="readonly-value" id="guest-score-alone">—</div></div>
-            <div><label class="sub-label">Unique</label><div class="readonly-value" id="guest-score-unique">—</div></div>
-            <div><label class="sub-label">Doublon</label><div class="readonly-value" id="guest-score-duplicate">—</div></div>
-            <div><label class="sub-label">Vide/invalide</label><div class="readonly-value" id="guest-score-invalid">—</div></div>
+            <div><label class="sub-label">Seul a repondre</label><div class="readonly-value" id="guest-score-alone">—</div></div>
+            <div><label class="sub-label">Unique (parmi plusieurs)</label><div class="readonly-value" id="guest-score-unique">—</div></div>
+            <div><label class="sub-label">En doublon</label><div class="readonly-value" id="guest-score-duplicate">—</div></div>
+            <div><label class="sub-label">Vide / invalide</label><div class="readonly-value" id="guest-score-invalid">—</div></div>
           </div>
         </div>
 
@@ -142,6 +144,13 @@
 
     <!-- VUE 2 : MANCHE EN COURS -->
     <div class="card view view-wide" id="view-round" style="display: none;">
+      <!-- Barre compacte fixee en haut sur mobile -->
+      <div class="round-sticky-bar" id="round-sticky-bar" aria-hidden="true">
+        <span class="rsb-letter" id="rsb-letter">?</span>
+        <span class="rsb-round">Manche <span id="rsb-round-num">1</span><span id="rsb-round-total"></span></span>
+        <span class="rsb-timer" id="rsb-timer">--:--</span>
+      </div>
+
       <div class="round-header">
         <div>
           <span class="round-label">Manche</span>
