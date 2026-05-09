@@ -450,6 +450,48 @@ input.code-input::placeholder {
   font-style: italic;
 }
 
+/* ==========================================================================
+   Page règles : intro + légende des votes
+   ========================================================================== */
+.rules-intro {
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 14px 16px;
+  background: var(--beige);
+  border-left: 3px solid var(--bleu-accent);
+  border-radius: var(--rayon-sm);
+  margin-bottom: 24px !important;
+}
+/* Légende des votes : icône colorée + texte sur chaque ligne */
+.rules-vote-legend {
+  list-style: none;
+  padding-left: 0 !important;
+  margin: 12px 0 !important;
+}
+.rules-vote-legend li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--beige-fonce);
+}
+.rules-vote-legend li:last-child { border-bottom: none; }
+.vote-demo {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--rayon-sm);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--blanc);
+}
+.vote-demo-unique { background: var(--vert); }
+.vote-demo-duplicate { background: #e08c2e; }
+.vote-demo-reject { background: var(--rouge); }
+
 
 .resume-banner {
   display: none; /* visible via .show ajoute par JS si pseudo+code en localStorage */
