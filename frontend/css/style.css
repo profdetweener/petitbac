@@ -127,14 +127,13 @@ input.code-input::placeholder {
   padding: 20px; border-radius: var(--rayon);
   text-align: center; margin-bottom: 24px;
 }
-.room-code-banner .label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.75; margin-bottom: 6px; }
-.room-code-banner .code { font-family: "Menlo", "Consolas", monospace; font-size: 36px; font-weight: 700; letter-spacing: 8px; }
-.room-share { margin-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.room-code-banner .label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.75; margin-bottom: 10px; }
+.room-share { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .room-share .invite-url {
-  font-family: "Menlo", "Consolas", monospace; font-size: 12px;
-  opacity: 0.75; word-break: break-all;
-  background: rgba(245, 237, 224, 0.07);
-  padding: 4px 10px; border-radius: var(--rayon-sm);
+  font-family: "Menlo", "Consolas", monospace; font-size: 14px;
+  opacity: 0.9; word-break: break-all;
+  background: rgba(245, 237, 224, 0.1);
+  padding: 8px 12px; border-radius: var(--rayon-sm);
   max-width: 100%;
 }
 .room-code-banner .copy-btn {
@@ -652,7 +651,7 @@ input.code-input::placeholder {
 
   /* --- Lobby : code de room --- */
   .room-code-banner { padding: 16px; margin-bottom: 16px; }
-  .room-code-banner .code { font-size: 32px; letter-spacing: 6px; }
+  .room-share .invite-url { font-size: 13px; }
   .room-code-banner .copy-btn { padding: 10px 16px; font-size: 14px; min-height: 40px; }
 
   /* --- Lobby : categories --- */
@@ -1011,7 +1010,7 @@ input.code-input::placeholder {
 @media (max-width: 380px) {
   .app-header h1 { font-size: 15px; }
   .card { padding: 16px 12px; }
-  .room-code-banner .code { font-size: 26px; letter-spacing: 4px; }
+  .room-share .invite-url { font-size: 12px; }
   .rsb-letter { font-size: 28px; padding: 4px 10px; }
   .rsb-timer { font-size: 20px; min-width: 56px; }
   .rsb-round { font-size: 12px; }

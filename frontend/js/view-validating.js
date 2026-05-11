@@ -276,8 +276,18 @@ export function initValidatingView(state, conn) {
    * set_cheater_cheats au serveur, qui clamp + diffuse.
    */
   function renderCheaterPanel() {
-    if (!cheaterPanelEl) return;
+    if (!cheaterPanelEl) {
+      console.warn("[cheater] panneau introuvable dans le DOM");
+      return;
+    }
     const shouldShow = cheaterStoppedBy && cheaterPenaltyPerCheat < 0;
+    console.log("[cheater] renderCheaterPanel", {
+      cheaterStoppedBy,
+      cheaterPenaltyPerCheat,
+      cheaterCount,
+      shouldShow,
+      configScoring: state.config?.scoring,
+    });
     if (!shouldShow) {
       cheaterPanelEl.style.display = "none";
       return;

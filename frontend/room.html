@@ -21,11 +21,10 @@
     <!-- VUE 1 : LOBBY -->
     <div class="card view" id="view-lobby" style="display: none;">
       <div class="room-code-banner">
-        <span class="label">Code de la partie</span>
-        <div class="code" id="room-code">------</div>
+        <span class="label">Lien d'invitation</span>
         <div class="room-share">
           <span class="invite-url" id="invite-url" title="Lien d'invitation">—</span>
-          <button class="copy-btn" id="copy-btn">Copier le lien d'invitation</button>
+          <button class="copy-btn" id="copy-btn">Copier le lien</button>
         </div>
       </div>
 
@@ -105,10 +104,10 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="score-cheater">Malus par categorie tricheuse (au STOP)</label>
+            <label for="score-cheater">Malus tricheur (bouton STOP)</label>
             <input type="number" id="score-cheater" value="0" min="-100" max="0" step="1">
             <p class="info-line" style="font-size: 12px; margin-top: 4px;">
-              Pendant la phase de vote, on pourra signaler des cases "tricheuses" pour le joueur qui a stoppe. 0 = desactive.
+              Pendant la phase de vote, on pourra signaler des cases "tricheuses" pour le joueur qui a STOP alors qu'il n'avait pas repondu de bonne foi a chaque categorie. Mettre 0 desactive cette option.
             </p>
           </div>
         </div>
@@ -158,7 +157,7 @@
             <div class="readonly-value" id="guest-end-mode">—</div>
           </div>
           <div class="form-group">
-            <label class="sub-label">Malus tricheur au STOP</label>
+            <label class="sub-label">Malus tricheur (bouton STOP)</label>
             <div class="readonly-value" id="guest-score-cheater">—</div>
           </div>
         </div>

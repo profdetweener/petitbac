@@ -54,8 +54,6 @@ if (!roomCode || !pseudo) {
 // direct (?code=XXX) sans passer par l'accueil, ca permet la reprise plus tard.
 storage.setItem("petitbac_room", roomCode);
 
-document.getElementById("room-code").textContent = roomCode;
-
 // ===========================================
 // 2. Etat partage avec les vues
 // ===========================================
