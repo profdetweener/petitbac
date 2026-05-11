@@ -23,11 +23,13 @@ export function initLobbyView(state, conn) {
   const selectedList = document.getElementById("categories-selected");
   const roundsInput = document.getElementById("rounds-input");
   const timerInput = document.getElementById("timer-input");
+  const endModeInput = document.getElementById("end-mode-input");
   const scoreInputs = {
     aloneInCategory: document.getElementById("score-alone"),
     uniqueAnswer: document.getElementById("score-unique"),
     duplicateAnswer: document.getElementById("score-duplicate"),
     invalidOrEmpty: document.getElementById("score-invalid"),
+    cheaterPenaltyPerCheat: document.getElementById("score-cheater"),
   };
   const startGameBtn = document.getElementById("btn-start-game");
 
@@ -36,10 +38,12 @@ export function initLobbyView(state, conn) {
     categories: document.getElementById("guest-categories"),
     rounds: document.getElementById("guest-rounds"),
     timer: document.getElementById("guest-timer"),
+    endMode: document.getElementById("guest-end-mode"),
     scoreAlone: document.getElementById("guest-score-alone"),
     scoreUnique: document.getElementById("guest-score-unique"),
     scoreDuplicate: document.getElementById("guest-score-duplicate"),
     scoreInvalid: document.getElementById("guest-score-invalid"),
+    scoreCheater: document.getElementById("guest-score-cheater"),
   };
 
   // --- Etat local de la config (host uniquement) ---
@@ -71,17 +75,25 @@ export function initLobbyView(state, conn) {
   function buildCurrentConfig() {
     const totalRounds = parseInt(roundsInput.value, 10);
     const timerSeconds = parseInt(timerInput.value, 10);
+    let cheaterRaw = parseInt(scoreInputs.cheaterPenaltyPerCheat.value, 10);
+    if (!Number.isFinite(cheaterRaw)) cheaterRaw = 0;
+    // Clamp cote client : doit etre <= 0, >= -100. La saisie est en negatif.
+    const cheaterPenaltyPerCheat = Math.max(-100, Math.min(0, cheaterRaw));
     const scoring = {
       aloneInCategory: parseInt(scoreInputs.aloneInCategory.value, 10) || 0,
       uniqueAnswer: parseInt(scoreInputs.uniqueAnswer.value, 10) || 0,
       duplicateAnswer: parseInt(scoreInputs.duplicateAnswer.value, 10) || 0,
       invalidOrEmpty: parseInt(scoreInputs.invalidOrEmpty.value, 10) || 0,
+      cheaterPenaltyPerCheat,
     };
+    const endModeRaw = endModeInput.value;
+    const endMode = endModeRaw === "timer_only" ? "timer_only" : "stop_or_timer";
     return {
       categories: [...localCategories],
       totalRounds: Number.isFinite(totalRounds) ? totalRounds : 5,
       timerSeconds: Number.isFinite(timerSeconds) ? timerSeconds : 90,
       scoring,
+      endMode,
     };
   }
 
@@ -161,7 +173,7 @@ export function initLobbyView(state, conn) {
   });
 
   // --- Push de config a chaque modif des autres champs ---
-  for (const el of [roundsInput, timerInput, ...Object.values(scoreInputs)]) {
+  for (const el of [roundsInput, timerInput, endModeInput, ...Object.values(scoreInputs)]) {
     el.addEventListener("change", pushConfigSoon);
     el.addEventListener("input", pushConfigSoon);
   }
@@ -192,11 +204,20 @@ export function initLobbyView(state, conn) {
       guestEls.rounds.textContent = `${config.totalRounds} manches`;
     }
     guestEls.timer.textContent = `${config.timerSeconds} sec`;
+    // Mode de fin de manche
+    if (guestEls.endMode) {
+      const mode = config.endMode === "timer_only" ? "Timer uniquement" : "STOP ou timer";
+      guestEls.endMode.textContent = mode;
+    }
     if (config.scoring) {
       guestEls.scoreAlone.textContent = config.scoring.aloneInCategory;
       guestEls.scoreUnique.textContent = config.scoring.uniqueAnswer;
       guestEls.scoreDuplicate.textContent = config.scoring.duplicateAnswer;
       guestEls.scoreInvalid.textContent = config.scoring.invalidOrEmpty;
+      if (guestEls.scoreCheater) {
+        const cp = config.scoring.cheaterPenaltyPerCheat ?? 0;
+        guestEls.scoreCheater.textContent = cp === 0 ? "desactive" : `${cp} / cat.`;
+      }
     }
   };
 
@@ -209,11 +230,21 @@ export function initLobbyView(state, conn) {
     renderCategoriesHost();
     if (config.totalRounds !== undefined) roundsInput.value = String(config.totalRounds);
     if (config.timerSeconds !== undefined) timerInput.value = String(config.timerSeconds);
+    if (config.endMode === "timer_only" || config.endMode === "stop_or_timer") {
+      endModeInput.value = config.endMode;
+    } else {
+      // Pas d'endMode dans la config (ancienne config) : on revient au defaut
+      endModeInput.value = "stop_or_timer";
+    }
     if (config.scoring) {
       scoreInputs.aloneInCategory.value = String(config.scoring.aloneInCategory);
       scoreInputs.uniqueAnswer.value = String(config.scoring.uniqueAnswer);
       scoreInputs.duplicateAnswer.value = String(config.scoring.duplicateAnswer);
       scoreInputs.invalidOrEmpty.value = String(config.scoring.invalidOrEmpty);
+      const cp = config.scoring.cheaterPenaltyPerCheat;
+      scoreInputs.cheaterPenaltyPerCheat.value = String(
+        typeof cp === "number" ? cp : 0
+      );
     }
   };
 

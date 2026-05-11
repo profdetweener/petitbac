@@ -11,7 +11,7 @@
  * autoritairement quand la manche se termine (via le message round_ended).
  */
 
-import { LIMITS } from "./constants.js";
+import { LIMITS, answerMatchesLetter } from "./constants.js";
 import { showToast } from "./toast.js";
 
 export function initRoundView(state, conn) {
@@ -35,6 +35,8 @@ export function initRoundView(state, conn) {
   let inputs = {};       // category -> input element
   let saveTimeoutId = null;
   let stopped = false;   // l'utilisateur a clique STOP
+  let currentLetter = null;
+  let currentEndMode = "stop_or_timer";
 
   /**
    * Construit le formulaire avec un input par categorie.
@@ -46,9 +48,19 @@ export function initRoundView(state, conn) {
    */
   state.renderRoundStart = function (msg) {
     stopped = false;
-    stopBtn.disabled = true; // grise par defaut, active quand toutes les cases sont remplies
-    stopBtn.textContent = "🛑 STOP — j'ai termine";
-    submissionStatusEl.textContent = "Remplis toutes les cases pour pouvoir cliquer STOP.";
+    currentLetter = msg.letter;
+    currentEndMode = state.config?.endMode === "timer_only" ? "timer_only" : "stop_or_timer";
+
+    // Mode "timer_only" : pas de bouton STOP du tout. Sinon affichage normal.
+    if (currentEndMode === "timer_only") {
+      stopBtn.style.display = "none";
+      submissionStatusEl.textContent = "Mode timer : la manche se termine quand le temps est ecoule. Pas de bouton STOP.";
+    } else {
+      stopBtn.style.display = "";
+      stopBtn.disabled = true; // grise par defaut, active quand toutes les cases sont remplies
+      stopBtn.textContent = "🛑 STOP — j'ai termine";
+      submissionStatusEl.textContent = "Remplis toutes les cases (avec la bonne lettre) pour pouvoir cliquer STOP.";
+    }
 
     roundNumberEl.textContent = msg.roundNumber;
     const total = msg.totalRounds ?? state.config?.totalRounds ?? 0;
@@ -188,25 +200,38 @@ export function initRoundView(state, conn) {
   }
 
   /**
-   * Verifie si toutes les cases sont remplies (au moins un caractere non blanc).
+   * Verifie que TOUTES les cases sont remplies (au moins un caractere non blanc)
+   * ET que toutes commencent par la bonne lettre.
    * Active/desactive le bouton STOP en consequence.
-   * Note : on ne verifie PAS que la lettre est correcte (laissant les joueurs
-   * libres de soumettre quelque chose qui sera invalide au vote).
+   *
+   * Si on est en mode "timer_only", la fonction est un no-op : le bouton STOP
+   * est cache de toute facon.
    */
   function refreshStopButton() {
+    if (currentEndMode === "timer_only") return;
     if (stopped) return;
     const allFilled = Object.values(inputs).every(
       (input) => input.value.trim().length > 0
     );
-    stopBtn.disabled = !allFilled;
-    if (allFilled) {
+    const allGoodLetter = Object.values(inputs).every((input) =>
+      answerMatchesLetter(input.value, currentLetter)
+    );
+    const total = Object.keys(inputs).length;
+    const filled = Object.values(inputs).filter(
+      (i) => i.value.trim().length > 0
+    ).length;
+    const badLetter = Object.values(inputs).filter(
+      (i) => i.value.trim().length > 0 && !answerMatchesLetter(i.value, currentLetter)
+    ).length;
+
+    stopBtn.disabled = !(allFilled && allGoodLetter);
+    if (allFilled && allGoodLetter) {
       submissionStatusEl.textContent = "";
+    } else if (!allFilled) {
+      submissionStatusEl.textContent = `${filled} / ${total} cases remplies — remplis tout pour pouvoir cliquer STOP.`;
     } else {
-      const filled = Object.values(inputs).filter(
-        (i) => i.value.trim().length > 0
-      ).length;
-      const total = Object.keys(inputs).length;
-      submissionStatusEl.textContent = `${filled} / ${total} cases remplies — remplis toutes les cases pour pouvoir cliquer STOP.`;
+      // Toutes remplies, mais certaines ne commencent pas par la lettre
+      submissionStatusEl.textContent = `${badLetter} reponse(s) ne commence(nt) pas par ${currentLetter} — corrige avant de cliquer STOP.`;
     }
   }
 
@@ -221,8 +246,14 @@ export function initRoundView(state, conn) {
   // --- STOP ---
   stopBtn.addEventListener("click", () => {
     if (stopped) return;
+    // En mode "timer_only", le bouton est cache mais defense en profondeur quand meme
+    if (currentEndMode === "timer_only") {
+      showToast("Le mode de partie n'autorise pas le STOP.", { type: "error" });
+      return;
+    }
     // Defense en profondeur : meme si le bouton n'etait pas grise (cas non prevu),
-    // on refuse le STOP si la grille n'est pas complete.
+    // on refuse le STOP si la grille n'est pas complete OU si une reponse ne commence
+    // pas par la bonne lettre.
     const allFilled = Object.values(inputs).every(
       (input) => input.value.trim().length > 0
     );
@@ -233,6 +264,20 @@ export function initRoundView(state, conn) {
         ),
       });
       showToast("Remplis toutes les cases avant de cliquer STOP.", { type: "error" });
+      refreshStopButton();
+      return;
+    }
+    const allGoodLetter = Object.values(inputs).every((input) =>
+      answerMatchesLetter(input.value, currentLetter)
+    );
+    if (!allGoodLetter) {
+      console.warn("[round] STOP refuse : mauvaise lettre", {
+        inputs: Object.fromEntries(
+          Object.entries(inputs).map(([k, v]) => [k, v.value])
+        ),
+        letter: currentLetter,
+      });
+      showToast(`Toutes tes reponses doivent commencer par ${currentLetter}.`, { type: "error" });
       refreshStopButton();
       return;
     }
@@ -258,9 +303,12 @@ export function initRoundView(state, conn) {
     const allInputs = formEl.querySelectorAll("input");
     const idx = Array.from(allInputs).indexOf(e.target);
     if (idx === allInputs.length - 1) {
-      // Dernier champ : STOP seulement si la grille est complete
-      if (!stopBtn.disabled) {
+      // Dernier champ : STOP seulement si on est en mode stop_or_timer et que c'est dispo
+      if (currentEndMode === "stop_or_timer" && !stopBtn.disabled) {
         stopBtn.click();
+      } else {
+        // Sinon on enleve juste le focus pour fermer le clavier mobile
+        e.target.blur();
       }
     } else {
       allInputs[idx + 1].focus();

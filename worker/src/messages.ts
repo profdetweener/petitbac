@@ -36,7 +36,12 @@ export const ROUND_CONFIG = {
     uniqueAnswer: 10,    // bonne reponse non doublonnee, plusieurs repondants
     duplicateAnswer: 5,  // reponse en doublon
     invalidOrEmpty: 0,   // pas de reponse ou invalidee par vote
+    cheaterPenaltyPerCheat: 0, // malus par categorie jugee "tricheuse" pour le stoppeur (≤ 0)
   },
+  // Modes de fin de manche
+  DEFAULT_END_MODE: "stop_or_timer" as "stop_or_timer" | "timer_only",
+  MIN_CHEATER_PENALTY: -100,
+  MAX_CHEATER_PENALTY: 0,
 } as const;
 
 export const CATEGORY_PRESETS = [
@@ -66,13 +71,35 @@ export interface ScoringConfig {
   uniqueAnswer: number;     // reponse unique parmi plusieurs repondants
   duplicateAnswer: number;  // reponse en doublon
   invalidOrEmpty: number;   // vide ou invalide par vote
+  /**
+   * Malus (≤ 0) applique au stoppeur pour chaque categorie marquee
+   * "tricheuse" par les autres joueurs pendant la phase de validation.
+   * 0 = desactive (pas d'UI affichee).
+   * N'a d'effet que si la manche s'est terminee par STOP (reason === "stop").
+   * Optionnel pour la retrocompatibilite (parties en cours avec ancienne config).
+   */
+  cheaterPenaltyPerCheat?: number;
 }
+
+/**
+ * Mode de fin de manche :
+ *   - "stop_or_timer" : un joueur peut cliquer STOP des qu'il a tout rempli,
+ *     ou bien attendre le timer (comportement historique).
+ *   - "timer_only" : aucun joueur ne peut interrompre la manche, on attend le timer.
+ *     Le bouton STOP n'est pas affiche cote client.
+ */
+export type EndMode = "stop_or_timer" | "timer_only";
 
 export interface GameConfig {
   categories: string[];        // liste finale des categories
   totalRounds: number;         // 0 = illimite (jusqu'a stop manuel)
   timerSeconds: number;        // duree du timer de la manche
   scoring: ScoringConfig;
+  /**
+   * Optionnel pour la retrocompatibilite : si absent ou inconnu, on traite
+   * comme "stop_or_timer" (comportement historique).
+   */
+  endMode?: EndMode;
 }
 
 // ===========================================
@@ -106,6 +133,24 @@ export interface RoundResult {
   cellScores: Record<string, Record<string, number>>;
   // scoreByPlayer[pseudo] = number (somme de la manche)
   scoreByPlayer: Record<string, number>;
+  /**
+   * Pseudo du joueur qui a stoppe la manche (si la manche s'est terminee par STOP).
+   * null pour les manches terminees par timer ou all_submitted.
+   * Necessaire pour afficher l'UI de "vote tricheur" pendant la phase validating.
+   */
+  stoppedBy: string | null;
+  /**
+   * Nombre de categories considerees "tricheuses" pour le stoppeur (cellules valides
+   * syntaxiquement mais jugees abusives, type "A" tout seul en Animal). Edite
+   * collaborativement pendant la phase validating, applique au scoring.
+   * 0 par defaut. N'a de sens que si stoppedBy !== null.
+   */
+  cheaterCheats: number;
+  /**
+   * Malus total applique au stoppeur (cheaterCheats × cheaterPenaltyPerCheat).
+   * Rempli uniquement au moment du scoring (phase "scoring"), sinon 0.
+   */
+  cheaterPenalty: number;
 }
 
 // ===========================================
@@ -128,6 +173,13 @@ export type ClientMessage =
       targetPseudo: string;
       category: string;
       state: "unique" | "duplicate" | "reject";
+    }
+  | {
+      // Modifie collaborativement le nombre de categories "tricheuses" du stoppeur.
+      // N'a d'effet qu'en phase validating et si la manche s'est terminee par STOP.
+      // Le serveur clamp entre 0 et le nombre de categories de la manche.
+      type: "set_cheater_cheats";
+      count: number;
     }
   | { type: "next_round" }
   | { type: "end_game" } // host : termine la partie tout de suite
@@ -201,6 +253,12 @@ export type ServerMessage =
       // Etat collaboratif diffuse a chaque modification.
       // cellStates[pseudo][category] = VoteValue
       cellStates: Record<string, Record<string, VoteValue>>;
+    }
+  | {
+      // Diffuse a chaque modification collaborative du compteur de "categories tricheuses"
+      // pour le stoppeur de la manche (phase validating uniquement).
+      type: "cheater_cheats_update";
+      count: number;
     }
   | {
       type: "round_scored";

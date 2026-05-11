@@ -171,5 +171,16 @@ export function validateGameConfig(
       return { ok: false, error: `Bareme invalide (${k}).` };
     }
   }
+  // Champ optionnel : cheaterPenaltyPerCheat (≤ 0, ≥ -100). Absent ou invalide -> traite comme 0.
+  if (s.cheaterPenaltyPerCheat !== undefined) {
+    const cp = s.cheaterPenaltyPerCheat;
+    if (typeof cp !== "number" || !Number.isFinite(cp) || cp > 0 || cp < -100) {
+      return { ok: false, error: "Malus tricheur invalide (entre -100 et 0)." };
+    }
+  }
+  // Champ optionnel : endMode. Absent ou invalide -> traite comme "stop_or_timer".
+  if (c.endMode !== undefined && c.endMode !== "stop_or_timer" && c.endMode !== "timer_only") {
+    return { ok: false, error: "Mode de fin de manche invalide." };
+  }
   return { ok: true };
 }

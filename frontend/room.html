@@ -23,7 +23,10 @@
       <div class="room-code-banner">
         <span class="label">Code de la partie</span>
         <div class="code" id="room-code">------</div>
-        <button class="copy-btn" id="copy-btn">Copier le code</button>
+        <div class="room-share">
+          <span class="invite-url" id="invite-url" title="Lien d'invitation">—</span>
+          <button class="copy-btn" id="copy-btn">Copier le lien d'invitation</button>
+        </div>
       </div>
 
       <div class="alert alert-error" id="error-box"></div>
@@ -93,6 +96,23 @@
           </div>
         </div>
 
+        <div class="form-row">
+          <div class="form-group">
+            <label for="end-mode-input">Fin de manche</label>
+            <select id="end-mode-input">
+              <option value="stop_or_timer" selected>STOP ou timer</option>
+              <option value="timer_only">Timer uniquement (pas de STOP)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="score-cheater">Malus par categorie tricheuse (au STOP)</label>
+            <input type="number" id="score-cheater" value="0" min="-100" max="0" step="1">
+            <p class="info-line" style="font-size: 12px; margin-top: 4px;">
+              Pendant la phase de vote, on pourra signaler des cases "tricheuses" pour le joueur qui a stoppe. 0 = desactive.
+            </p>
+          </div>
+        </div>
+
         <button class="btn btn-primary btn-block" id="btn-start-game">
           🚀 Demarrer la partie
         </button>
@@ -129,6 +149,17 @@
             <div><label class="sub-label">Unique (parmi plusieurs)</label><div class="readonly-value" id="guest-score-unique">—</div></div>
             <div><label class="sub-label">En doublon</label><div class="readonly-value" id="guest-score-duplicate">—</div></div>
             <div><label class="sub-label">Vide / invalide</label><div class="readonly-value" id="guest-score-invalid">—</div></div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="sub-label">Fin de manche</label>
+            <div class="readonly-value" id="guest-end-mode">—</div>
+          </div>
+          <div class="form-group">
+            <label class="sub-label">Malus tricheur au STOP</label>
+            <div class="readonly-value" id="guest-score-cheater">—</div>
           </div>
         </div>
 
@@ -196,6 +227,22 @@
         🗳️ Vote pour ou contre chaque reponse des autres joueurs.
         Une reponse acceptee a la majorite simple sera validee.
       </p>
+
+      <!-- Zone de malus tricheur (visible uniquement si STOP + malus configure) -->
+      <div class="cheater-panel" id="cheater-panel" style="display: none;">
+        <div class="cheater-panel-info">
+          <strong id="cheater-panel-title">Malus tricheur</strong>
+          <p id="cheater-panel-desc" class="info-line">
+            <span id="cheater-stopper">—</span> a stoppe la manche. Combien de categories sont "tricheuses" (lettre OK mais reponse abusive type "A" seul) ?
+          </p>
+          <p class="info-line" id="cheater-panel-result"></p>
+        </div>
+        <div class="cheater-panel-controls">
+          <button class="cheater-btn" id="cheater-dec" type="button" aria-label="Diminuer">−</button>
+          <span class="cheater-count" id="cheater-count">0</span>
+          <button class="cheater-btn" id="cheater-inc" type="button" aria-label="Augmenter">+</button>
+        </div>
+      </div>
 
       <div class="validation-table-wrap">
         <table class="validation-table" id="validation-table"></table>

@@ -16,7 +16,10 @@
   <main>
     <div class="card">
       <h2>Bienvenue !</h2>
-      <p class="subtitle">Choisis un pseudo, puis crée une nouvelle partie ou rejoins-en une avec un code.</p>
+      <p class="subtitle" id="subtitle-create">Choisis un pseudo et cree une nouvelle partie.</p>
+      <p class="subtitle" id="subtitle-join" style="display: none;">
+        Tu es invite a rejoindre la partie <strong id="join-code-label">—</strong>. Choisis ton pseudo pour entrer.
+      </p>
 
       <!-- Banniere "Reprendre la partie en cours" : visible uniquement si
            pseudo + code sont en localStorage et que la room existe encore. -->
@@ -38,19 +41,8 @@
         <input type="text" id="pseudo-input" placeholder="Ex : Max" maxlength="20" autocomplete="off">
       </div>
 
-      <button class="btn btn-primary btn-block" id="btn-create">
-        Créer une partie
-      </button>
-
-      <div class="divider">ou</div>
-
-      <div class="form-group">
-        <label for="code-input">Code de la partie</label>
-        <input type="text" id="code-input" class="code-input" placeholder="ABC123" maxlength="6" autocomplete="off">
-      </div>
-
-      <button class="btn btn-secondary btn-block" id="btn-join">
-        Rejoindre
+      <button class="btn btn-primary btn-block" id="btn-action">
+        Creer une partie
       </button>
     </div>
   </main>

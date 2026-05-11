@@ -50,6 +50,10 @@ export function initScoringView(state, conn) {
     // === Tableau scores manche : lignes = joueurs, colonnes = categories ===
     tableEl.innerHTML = "";
 
+    // Nettoie l'ancienne note de malus tricheur si elle existait (re-render scoring)
+    const existingNote = tableEl.parentElement?.querySelector(".cheater-applied-note");
+    if (existingNote) existingNote.remove();
+
     const thead = document.createElement("thead");
     const trHead = document.createElement("tr");
     const thPseudo = document.createElement("th");
@@ -108,12 +112,42 @@ export function initScoringView(state, conn) {
       const tdTotal = document.createElement("td");
       tdTotal.className = "score-total-cell";
       tdTotal.dataset.label = "Total";
-      tdTotal.textContent = result.scoreByPlayer[pseudo] ?? 0;
+      const totalScore = result.scoreByPlayer[pseudo] ?? 0;
+      // Si ce joueur est le stoppeur et qu'un malus tricheur a ete applique,
+      // on affiche le detail "raw - malus = total" pour la transparence.
+      const isStopper = result.stoppedBy === pseudo;
+      const penalty = result.cheaterPenalty ?? 0;
+      if (isStopper && penalty < 0) {
+        const raw = totalScore - penalty; // penalty etant <= 0, raw = totalScore + |penalty|
+        const totalMain = document.createElement("div");
+        totalMain.className = "score-total-main";
+        totalMain.textContent = totalScore;
+        const totalDetail = document.createElement("div");
+        totalDetail.className = "score-total-breakdown";
+        // ex: "30 - 10 = 20" (raw, |penalty|, totalScore)
+        totalDetail.textContent = `${raw} − ${Math.abs(penalty)}`;
+        totalDetail.title = "Malus tricheur applique pour avoir stoppe la manche avec des reponses tricheuses";
+        tdTotal.appendChild(totalMain);
+        tdTotal.appendChild(totalDetail);
+        tr.classList.add("has-cheater-penalty");
+      } else {
+        tdTotal.textContent = totalScore;
+      }
       tr.appendChild(tdTotal);
 
       tbody.appendChild(tr);
     }
     tableEl.appendChild(tbody);
+
+    // === Bandeau d'explication du malus tricheur (si applique) ===
+    if (result.stoppedBy && (result.cheaterPenalty ?? 0) < 0) {
+      const cheaterNote = document.createElement("p");
+      cheaterNote.className = "cheater-applied-note";
+      const cheats = result.cheaterCheats ?? 0;
+      const perCheat = state.config?.scoring?.cheaterPenaltyPerCheat ?? 0;
+      cheaterNote.textContent = `⚠️ Malus tricheur applique a ${result.stoppedBy} : ${cheats} categorie(s) × ${perCheat} = ${result.cheaterPenalty} pts`;
+      tableEl.parentElement.insertBefore(cheaterNote, tableEl.nextSibling);
+    }
 
     // === Classement cumule ===
     rankingEl.innerHTML = "";

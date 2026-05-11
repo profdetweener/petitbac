@@ -29,11 +29,23 @@ export function initValidatingView(state, conn) {
   const finishBtn = document.getElementById("btn-finish-validation");
   const endGameBtn = document.getElementById("btn-end-game-validating");
 
+  // --- Refs panneau "malus tricheur" ---
+  const cheaterPanelEl = document.getElementById("cheater-panel");
+  const cheaterStopperEl = document.getElementById("cheater-stopper");
+  const cheaterCountEl = document.getElementById("cheater-count");
+  const cheaterDecBtn = document.getElementById("cheater-dec");
+  const cheaterIncBtn = document.getElementById("cheater-inc");
+  const cheaterResultEl = document.getElementById("cheater-panel-result");
+
   let currentLetter = null;
   let currentCategories = [];
   let currentPseudos = [];
   let currentAnswers = {};
   let currentCellStates = {};
+  // Etat collaboratif du compteur "categories tricheuses"
+  let cheaterStoppedBy = null;
+  let cheaterCount = 0;
+  let cheaterPenaltyPerCheat = 0;
 
   /**
    * Appele quand round_ended arrive : construit le tableau initial.
@@ -46,21 +58,30 @@ export function initValidatingView(state, conn) {
     currentCategories = msg.categories ?? state.config?.categories ?? [];
     currentPseudos = Object.keys(currentAnswers);
 
+    // Donnees du panneau "tricheur" : viennent du RoundResult cote serveur.
+    // En reconnexion, le compteur peut etre > 0 si d'autres joueurs ont deja vote.
+    cheaterStoppedBy = result.stoppedBy ?? null;
+    cheaterCount = result.cheaterCheats ?? 0;
+    cheaterPenaltyPerCheat = state.config?.scoring?.cheaterPenaltyPerCheat ?? 0;
+
     console.log("[validation] renderValidationStart", {
       isHost: state.isHost,
       myPseudo: state.myPseudo,
       categoriesLen: currentCategories.length,
       pseudosLen: currentPseudos.length,
       reason: msg.reason,
+      stoppedBy: cheaterStoppedBy,
+      cheaterPenaltyPerCheat,
     });
 
     roundNumberEl.textContent = result.roundNumber;
     const total = msg.totalRounds ?? state.config?.totalRounds ?? 0;
     roundTotalEl.textContent = total > 0 ? `/ ${total}` : "";
     letterValueEl.textContent = result.letter;
-    reasonEl.textContent = formatReason(msg.reason, msg.stoppedBy);
+    reasonEl.textContent = formatReason(msg.reason, msg.stoppedBy ?? cheaterStoppedBy);
 
     renderTable();
+    renderCheaterPanel();
     updateHostActions();
   };
 
@@ -70,6 +91,14 @@ export function initValidatingView(state, conn) {
   state.applyCellStateUpdate = function (cellStates) {
     currentCellStates = cellStates;
     refreshAllCells();
+  };
+
+  /**
+   * Appele a chaque cheater_cheats_update : met a jour le compteur en direct.
+   */
+  state.applyCheaterCountUpdate = function (count) {
+    cheaterCount = count;
+    renderCheaterPanel();
   };
 
   state.refreshValidationHostState = function () {
@@ -234,6 +263,52 @@ export function initValidatingView(state, conn) {
       hostActionsEl.style.display = "none";
       waitingEl.style.display = "block";
     }
+  }
+
+  /**
+   * Affiche / met a jour le panneau de "malus tricheur".
+   *
+   * Visible uniquement si :
+   *   - la manche s'est terminee par STOP (stoppedBy != null)
+   *   - le malus par cellule est configure (!= 0)
+   *
+   * Le compteur est partage collaborativement. Boutons - / + envoient
+   * set_cheater_cheats au serveur, qui clamp + diffuse.
+   */
+  function renderCheaterPanel() {
+    if (!cheaterPanelEl) return;
+    const shouldShow = cheaterStoppedBy && cheaterPenaltyPerCheat < 0;
+    if (!shouldShow) {
+      cheaterPanelEl.style.display = "none";
+      return;
+    }
+    cheaterPanelEl.style.display = "flex";
+    cheaterStopperEl.textContent = cheaterStoppedBy;
+    cheaterCountEl.textContent = String(cheaterCount);
+    cheaterDecBtn.disabled = cheaterCount <= 0;
+    cheaterIncBtn.disabled = cheaterCount >= currentCategories.length;
+    // Apercu du malus total qui sera applique
+    const totalMalus = cheaterCount * cheaterPenaltyPerCheat;
+    if (totalMalus === 0) {
+      cheaterResultEl.textContent = "";
+    } else {
+      cheaterResultEl.textContent = `Malus actuel : ${totalMalus} pts (${cheaterCount} × ${cheaterPenaltyPerCheat})`;
+    }
+  }
+
+  if (cheaterDecBtn) {
+    cheaterDecBtn.addEventListener("click", () => {
+      const next = Math.max(0, cheaterCount - 1);
+      if (next === cheaterCount) return;
+      conn.send({ type: "set_cheater_cheats", count: next });
+    });
+  }
+  if (cheaterIncBtn) {
+    cheaterIncBtn.addEventListener("click", () => {
+      const next = Math.min(currentCategories.length, cheaterCount + 1);
+      if (next === cheaterCount) return;
+      conn.send({ type: "set_cheater_cheats", count: next });
+    });
   }
 
   finishBtn.addEventListener("click", () => {

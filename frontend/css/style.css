@@ -129,8 +129,15 @@ input.code-input::placeholder {
 }
 .room-code-banner .label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.75; margin-bottom: 6px; }
 .room-code-banner .code { font-family: "Menlo", "Consolas", monospace; font-size: 36px; font-weight: 700; letter-spacing: 8px; }
+.room-share { margin-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.room-share .invite-url {
+  font-family: "Menlo", "Consolas", monospace; font-size: 12px;
+  opacity: 0.75; word-break: break-all;
+  background: rgba(245, 237, 224, 0.07);
+  padding: 4px 10px; border-radius: var(--rayon-sm);
+  max-width: 100%;
+}
 .room-code-banner .copy-btn {
-  margin-top: 12px;
   background: rgba(245, 237, 224, 0.15); color: var(--beige);
   border: 1px solid rgba(245, 237, 224, 0.3);
   padding: 6px 14px; border-radius: var(--rayon-sm);
@@ -138,6 +145,39 @@ input.code-input::placeholder {
   transition: background 0.15s;
 }
 .room-code-banner .copy-btn:hover { background: rgba(245, 237, 224, 0.25); }
+
+/* ==========================================================================
+   Panneau "malus tricheur" (phase validating)
+   ========================================================================== */
+.cheater-panel {
+  background: #fff5e6; border: 1px solid #e0b85c;
+  border-radius: var(--rayon); padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.cheater-panel-info { flex: 1; min-width: 200px; }
+.cheater-panel-info strong { display: block; font-size: 15px; color: #8a5a00; margin-bottom: 4px; }
+.cheater-panel-info .info-line { margin: 0; font-size: 13px; color: var(--gris-texte); }
+.cheater-panel-info #cheater-panel-result { font-weight: 600; color: var(--rouge); margin-top: 4px; }
+.cheater-panel-controls {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--blanc); border: 1px solid var(--beige-fonce);
+  border-radius: var(--rayon); padding: 4px;
+}
+.cheater-btn {
+  background: transparent; border: none;
+  width: 36px; height: 36px;
+  font-size: 22px; font-weight: 700;
+  color: var(--bleu-nuit); cursor: pointer;
+  border-radius: var(--rayon-sm);
+  transition: background 0.15s;
+}
+.cheater-btn:hover { background: var(--beige); }
+.cheater-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.cheater-count {
+  font-size: 22px; font-weight: 700; min-width: 32px; text-align: center;
+  color: var(--bleu-nuit);
+}
 
 .players-section h3 {
   margin: 0 0 12px; font-size: 16px;
@@ -388,6 +428,28 @@ input.code-input::placeholder {
   background: var(--bleu-nuit-clair);
   color: var(--beige);
 }
+/* Stoppeur penalise : total + detail du malus */
+.score-total-cell .score-total-main { font-size: 18px; line-height: 1.1; }
+.score-total-cell .score-total-breakdown {
+  font-size: 11px; font-weight: 500;
+  opacity: 0.85;
+  font-family: "Menlo", "Consolas", monospace;
+  margin-top: 2px;
+}
+.scores-table tr.has-cheater-penalty { background: rgba(200, 69, 69, 0.04); }
+.scores-table tr.has-cheater-penalty .col-category::after {
+  content: " 🛑";
+  font-size: 12px;
+}
+.cheater-applied-note {
+  margin: 12px 0 16px;
+  padding: 10px 14px;
+  background: #fff5e6;
+  border-left: 4px solid #e0b85c;
+  border-radius: var(--rayon-sm);
+  font-size: 13px;
+  color: #8a5a00;
+}
 
 /* ==========================================================================
    Footer — pied de page minimal pour les liens vers mentions légales
@@ -620,6 +682,16 @@ input.code-input::placeholder {
 
   /* --- Lobby : liste joueurs --- */
   .player-item { padding: 12px 14px; }
+
+  /* --- Validating : panneau malus tricheur (stack vertical) --- */
+  .cheater-panel {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .cheater-panel-controls { align-self: center; }
+  .cheater-btn { width: 44px; height: 44px; }
+  .cheater-count { font-size: 24px; min-width: 40px; }
 
   /* ==========================================================================
      VUE MANCHE

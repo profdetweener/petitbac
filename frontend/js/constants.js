@@ -25,6 +25,13 @@ export const LIMITS = {
   MIN_CATEGORIES: 2,
   MAX_CATEGORIES: 12,
   MAX_ANSWER_LEN: 50,
+  MIN_CHEATER_PENALTY: -100,
+  MAX_CHEATER_PENALTY: 0,
+};
+
+export const END_MODES = {
+  STOP_OR_TIMER: "stop_or_timer",
+  TIMER_ONLY: "timer_only",
 };
 
 /**

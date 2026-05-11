@@ -152,6 +152,9 @@ export class RoomDO {
       case "set_cell_state":
         this.handleSetCellState(ws, msg.targetPseudo, msg.category, msg.state);
         break;
+      case "set_cheater_cheats":
+        this.handleSetCheaterCheats(ws, msg.count);
+        break;
       case "next_round":
         this.handleNextRound(ws);
         break;
@@ -531,9 +534,21 @@ export class RoomDO {
     const player = this.players.get(pseudo);
     if (!player) return;
 
-    // Defense en profondeur : un joueur ne peut stopper que s'il a rempli toutes les cases.
-    // Le frontend devrait deja l'empecher mais on verifie ici aussi.
+    // Defense en profondeur : refuser le STOP si la partie est en mode "timer_only".
+    // Le frontend ne devrait meme pas afficher le bouton, mais on bloque ici aussi.
     if (!this.config) return;
+    if (this.config.endMode === "timer_only") {
+      this.sendError(
+        ws,
+        "WRONG_PHASE",
+        "Le mode de partie n'autorise pas le STOP : il faut attendre le timer."
+      );
+      return;
+    }
+
+    // Defense en profondeur : un joueur ne peut stopper que s'il a rempli toutes les cases
+    // ET que toutes ses reponses commencent par la bonne lettre.
+    // Le frontend devrait deja l'empecher mais on verifie ici aussi.
     const myAnswers = this.answers[pseudo] ?? {};
     const incompleteCells = this.config.categories.filter(
       (cat) => !myAnswers[cat] || myAnswers[cat].trim().length === 0
@@ -543,6 +558,18 @@ export class RoomDO {
         ws,
         "INVALID_MESSAGE",
         `Remplis toutes les cases avant de cliquer STOP (${incompleteCells.length} manquantes).`
+      );
+      return;
+    }
+    const currentLetter = this.letter ?? "";
+    const badLetterCells = this.config.categories.filter(
+      (cat) => !answerMatchesLetter(myAnswers[cat] ?? "", currentLetter)
+    );
+    if (badLetterCells.length > 0) {
+      this.sendError(
+        ws,
+        "INVALID_MESSAGE",
+        `Toutes tes reponses doivent commencer par ${currentLetter} (${badLetterCells.length} incorrectes).`
       );
       return;
     }
@@ -611,6 +638,9 @@ export class RoomDO {
       cellStates: this.cellStates,
       cellScores: {},
       scoreByPlayer: {},
+      stoppedBy,
+      cheaterCheats: 0,
+      cheaterPenalty: 0,
     };
     this.currentResult = result;
     this.phase = "validating";
@@ -668,6 +698,36 @@ export class RoomDO {
     this.broadcast({ type: "cell_state_update", cellStates: this.cellStates });
   }
 
+  /**
+   * Modifie collaborativement le nombre de "categories tricheuses" pour le stoppeur
+   * de la manche. N'importe qui peut le faire pendant la phase validating.
+   * Le serveur clamp entre 0 et le nombre de categories, et ignore silencieusement
+   * si la manche ne s'est pas terminee par STOP (pas de stoppeur a penaliser).
+   */
+  private handleSetCheaterCheats(ws: WebSocket, count: number): void {
+    if (this.phase !== "validating") {
+      this.sendError(ws, "WRONG_PHASE", "Pas de phase de validation en cours.");
+      return;
+    }
+    if (!this.config || !this.currentResult) return;
+    // Pas de stoppeur => l'UI ne devrait pas etre affichee cote client, mais on
+    // ignore silencieusement par defense en profondeur.
+    if (!this.currentResult.stoppedBy) return;
+    // Malus desactive cote config => meme chose, on ignore.
+    const penaltyPerCheat = this.config.scoring.cheaterPenaltyPerCheat ?? 0;
+    if (penaltyPerCheat === 0) return;
+
+    if (typeof count !== "number" || !Number.isFinite(count)) {
+      this.sendError(ws, "INVALID_MESSAGE", "Compteur invalide.");
+      return;
+    }
+    // Clamp entre 0 et le nombre de categories de la manche
+    const maxCount = this.config.categories.length;
+    const clamped = Math.max(0, Math.min(maxCount, Math.floor(count)));
+    this.currentResult.cheaterCheats = clamped;
+    this.broadcast({ type: "cheater_cheats_update", count: clamped });
+  }
+
   // ==========================================================================
   // PHASE 4 — SCORING & MANCHE SUIVANTE
   // ==========================================================================
@@ -698,7 +758,21 @@ export class RoomDO {
       if (!this.currentResult) return;
       this.currentResult.cellScores = cellScores;
       this.currentResult.scoreByPlayer = scoreByPlayer;
-      // Cumul dans les sessions
+
+      // Application du malus tricheur : applique au stoppeur uniquement, si configure.
+      // cheaterPenalty est negatif ou nul. Il est ajoute au score de la manche du stoppeur,
+      // et stocke sur le RoundResult pour affichage cote client.
+      const stoppedBy = this.currentResult.stoppedBy;
+      const cheats = this.currentResult.cheaterCheats;
+      const perCheat = this.config.scoring.cheaterPenaltyPerCheat ?? 0;
+      let penalty = 0;
+      if (stoppedBy && cheats > 0 && perCheat < 0 && scoreByPlayer[stoppedBy] !== undefined) {
+        penalty = cheats * perCheat; // <= 0
+        scoreByPlayer[stoppedBy] += penalty;
+      }
+      this.currentResult.cheaterPenalty = penalty;
+
+      // Cumul dans les sessions (apres application du malus)
       for (const [p, score] of Object.entries(scoreByPlayer)) {
         const session = this.players.get(p);
         if (session) session.totalScore += score;

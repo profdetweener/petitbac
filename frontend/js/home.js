@@ -1,14 +1,20 @@
 /**
- * Logique de la page d'accueil :
- *   - validation cote client du pseudo
- *   - bouton "Creer" : POST /rooms puis redirection vers room.html
- *   - bouton "Rejoindre" : GET /rooms/:code/exists puis redirection
- *   - banniere "Reprendre la partie" si le pseudo et le code sont en
- *     localStorage (et que la room existe encore)
+ * Logique de la page d'accueil (refactor : invitation par URL hash).
  *
- * Le pseudo et le code sont stockes en localStorage pour persister entre
- * fermetures d'onglet (necessaire pour la reconnexion en cas de fermeture
- * accidentelle de la page).
+ * Comportement :
+ *   - Si l'URL contient un hash (`#ABC123`) avec un code de room valide,
+ *     la page passe en mode "Rejoindre" : un seul champ pseudo, le code
+ *     est implicite. Le bouton verifie l'existence de la room puis redirige.
+ *   - Sinon, la page est en mode "Creer" : un champ pseudo, le bouton
+ *     cree une nouvelle room et redirige.
+ *
+ * Persistance :
+ *   - le pseudo (localStorage) est restaure entre les sessions
+ *   - une banniere "Reprendre la partie" apparait si l'utilisateur etait
+ *     dans une room qui existe encore
+ *
+ * Format du code dans le hash : 6 caracteres alphanumeriques (cf. CODE_ALPHABET serveur).
+ * On accepte aussi `#join=ABC123` pour etre tolerant, mais on emet du `#ABC123` brut.
  */
 
 import { createRoom, roomExists, pingWorker } from "./api.js";
@@ -16,11 +22,13 @@ import { showToast } from "./toast.js";
 
 const PSEUDO_MIN = 3;
 const PSEUDO_MAX = 20;
+// Doit matcher CODE_ALPHABET cote serveur (ABCDEFGHJKMNPQRSTUVWXYZ23456789, longueur 6)
+// On est tolerant a la saisie utilisateur ici : tout 4 a 6 chars alphanum est accepte
+// (le serveur fera la verification stricte).
+const CODE_RE = /^[A-Z0-9]{4,6}$/;
 
 const pseudoInput = document.getElementById("pseudo-input");
-const codeInput = document.getElementById("code-input");
-const btnCreate = document.getElementById("btn-create");
-const btnJoin = document.getElementById("btn-join");
+const btnAction = document.getElementById("btn-action");
 const errorBox = document.getElementById("error-box");
 const serverStatus = document.getElementById("server-status");
 const resumeBanner = document.getElementById("resume-banner");
@@ -28,9 +36,11 @@ const resumeBannerCode = document.getElementById("resume-banner-code");
 const resumeBannerPseudo = document.getElementById("resume-banner-pseudo");
 const resumeBannerBtn = document.getElementById("resume-banner-btn");
 const resumeBannerDismiss = document.getElementById("resume-banner-dismiss");
+const subtitleCreate = document.getElementById("subtitle-create");
+const subtitleJoin = document.getElementById("subtitle-join");
+const joinCodeLabel = document.getElementById("join-code-label");
 
-// --- Helper de stockage : localStorage par defaut, fallback sessionStorage
-//     (Safari mode prive peut bloquer localStorage). ---
+// --- Helper de stockage : localStorage par defaut, fallback sessionStorage ---
 const storage = (() => {
   function tryStorage(s) {
     try {
@@ -43,13 +53,29 @@ const storage = (() => {
     }
   }
   return tryStorage(window.localStorage) ?? tryStorage(window.sessionStorage) ?? {
-    // Fallback in-memory (au cas extremement rare)
     _m: new Map(),
     getItem(k) { return this._m.get(k) ?? null; },
     setItem(k, v) { this._m.set(k, v); },
     removeItem(k) { this._m.delete(k); },
   };
 })();
+
+// --- Detection du mode (Creer ou Rejoindre) via le hash de l'URL ---
+function parseInviteCode() {
+  // Hash peut etre "#ABC123" ou "#join=ABC123" (tolerance). On normalise en uppercase.
+  let raw = (window.location.hash || "").replace(/^#/, "").trim();
+  // Forme "join=XXX" ou autre cle=valeur : on extrait apres le "="
+  if (raw.includes("=")) {
+    const parts = raw.split("=");
+    raw = parts[parts.length - 1];
+  }
+  raw = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (CODE_RE.test(raw)) return raw;
+  return null;
+}
+
+const inviteCode = parseInviteCode();
+const isJoinMode = inviteCode !== null;
 
 // --- Restauration du pseudo s'il existe deja ---
 const savedPseudo = storage.getItem("petitbac_pseudo");
@@ -58,11 +84,25 @@ if (savedPseudo) {
   pseudoInput.value = savedPseudo;
 }
 
+// --- Application du mode UI (Creer ou Rejoindre) ---
+if (isJoinMode) {
+  subtitleCreate.style.display = "none";
+  subtitleJoin.style.display = "block";
+  joinCodeLabel.textContent = inviteCode;
+  btnAction.textContent = "Rejoindre la partie";
+} else {
+  subtitleCreate.style.display = "block";
+  subtitleJoin.style.display = "none";
+  btnAction.textContent = "Creer une partie";
+}
+
 // --- Banniere "Reprendre la partie" ---
 // Affichee si pseudo + code sont en storage ET que la room existe encore.
+// En mode "Rejoindre" via lien, on n'affiche la reprise que si la room sauvegardee
+// est differente du lien : sinon ca fait doublon (le bouton principal va deja la rejoindre).
 async function maybeShowResumeBanner() {
   if (!savedPseudo || !savedRoom || !resumeBanner) return;
-  // On verifie en silence que la room existe (sinon on cache la banniere)
+  if (isJoinMode && savedRoom === inviteCode) return;
   let exists = false;
   try {
     exists = await roomExists(savedRoom);
@@ -70,7 +110,6 @@ async function maybeShowResumeBanner() {
     return; // pas de banniere si serveur injoignable
   }
   if (!exists) {
-    // Room expiree : on nettoie le storage pour ne pas redemander a chaque visite
     storage.removeItem("petitbac_room");
     return;
   }
@@ -84,7 +123,6 @@ async function maybeShowResumeBanner() {
   const ok = await pingWorker();
   if (ok) {
     serverStatus.textContent = "✓ serveur en ligne";
-    // Affiche la banniere de reprise APRES avoir confirme que le serveur est OK
     maybeShowResumeBanner();
   } else {
     serverStatus.textContent = "✗ serveur injoignable";
@@ -95,7 +133,6 @@ async function maybeShowResumeBanner() {
 // --- Bouton "Reprendre la partie" ---
 if (resumeBannerBtn) {
   resumeBannerBtn.addEventListener("click", () => {
-    // Le pseudo et le code sont deja en storage, on saute directement a la room.
     window.location.href = `room.html?code=${encodeURIComponent(savedRoom)}`;
   });
 }
@@ -106,12 +143,7 @@ if (resumeBannerDismiss) {
   });
 }
 
-// --- Normalisation du code (uppercase) en saisie ---
-codeInput.addEventListener("input", () => {
-  codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-});
-
-// --- Validation cote client ---
+// --- Validation cote client du pseudo ---
 function validatePseudo() {
   const value = pseudoInput.value.trim();
   if (value.length < PSEUDO_MIN) {
@@ -133,8 +165,8 @@ function clearError() {
   errorBox.textContent = "";
 }
 
-// --- Creation d'une room ---
-btnCreate.addEventListener("click", async () => {
+// --- Action principale (Creer OU Rejoindre selon le mode) ---
+async function doAction() {
   clearError();
   const pseudoCheck = validatePseudo();
   if (!pseudoCheck.ok) {
@@ -143,8 +175,33 @@ btnCreate.addEventListener("click", async () => {
     return;
   }
 
-  btnCreate.disabled = true;
-  btnCreate.textContent = "Creation…";
+  if (isJoinMode) {
+    // Mode Rejoindre : on verifie que la room existe puis on redirige
+    btnAction.disabled = true;
+    btnAction.textContent = "Verification…";
+    try {
+      const exists = await roomExists(inviteCode);
+      if (!exists) {
+        showError("Cette partie n'existe pas (ou a expire). Demande un nouveau lien.");
+        btnAction.disabled = false;
+        btnAction.textContent = "Rejoindre la partie";
+        return;
+      }
+      storage.setItem("petitbac_pseudo", pseudoCheck.value);
+      storage.setItem("petitbac_room", inviteCode);
+      window.location.href = `room.html?code=${encodeURIComponent(inviteCode)}`;
+    } catch (err) {
+      console.error(err);
+      showError("Impossible de joindre le serveur. Reessaie dans un instant.");
+      btnAction.disabled = false;
+      btnAction.textContent = "Rejoindre la partie";
+    }
+    return;
+  }
+
+  // Mode Creer
+  btnAction.disabled = true;
+  btnAction.textContent = "Creation…";
   try {
     const code = await createRoom();
     storage.setItem("petitbac_pseudo", pseudoCheck.value);
@@ -153,55 +210,17 @@ btnCreate.addEventListener("click", async () => {
   } catch (err) {
     console.error(err);
     showError("Impossible de creer la room. Reessaie dans un instant.");
-    btnCreate.disabled = false;
-    btnCreate.textContent = "Creer une partie";
+    btnAction.disabled = false;
+    btnAction.textContent = "Creer une partie";
   }
-});
+}
 
-// --- Rejoindre une room ---
-btnJoin.addEventListener("click", async () => {
-  clearError();
-  const pseudoCheck = validatePseudo();
-  if (!pseudoCheck.ok) {
-    showError(pseudoCheck.error);
-    pseudoInput.focus();
-    return;
-  }
+btnAction.addEventListener("click", doAction);
 
-  const code = codeInput.value.trim().toUpperCase();
-  if (code.length < 4) {
-    showError("Saisis le code de la partie.");
-    codeInput.focus();
-    return;
-  }
-
-  btnJoin.disabled = true;
-  btnJoin.textContent = "Verification…";
-  try {
-    const exists = await roomExists(code);
-    if (!exists) {
-      showError("Cette partie n'existe pas (ou a expire). Verifie le code.");
-      btnJoin.disabled = false;
-      btnJoin.textContent = "Rejoindre";
-      return;
-    }
-    storage.setItem("petitbac_pseudo", pseudoCheck.value);
-    storage.setItem("petitbac_room", code);
-    window.location.href = `room.html?code=${encodeURIComponent(code)}`;
-  } catch (err) {
-    console.error(err);
-    showError("Impossible de joindre le serveur. Reessaie dans un instant.");
-    btnJoin.disabled = false;
-    btnJoin.textContent = "Rejoindre";
-  }
-});
-
-// --- Entree dans le champ code = rejoindre ---
-codeInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") btnJoin.click();
-});
+// --- Entree dans le champ pseudo = action principale ---
 pseudoInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && codeInput.value.trim().length >= 4) {
-    btnJoin.click();
+  if (e.key === "Enter") {
+    e.preventDefault();
+    doAction();
   }
 });

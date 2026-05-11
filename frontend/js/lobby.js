@@ -179,9 +179,12 @@ conn.on("joined", (msg) => {
       previousAnswers: msg.myAnswers ?? null,
     });
   } else if (msg.phase === "validating" && msg.currentResult) {
+    // Reconnexion mid-validating : on derive le reason a partir du stoppedBy connu
+    // sur le RoundResult (au lieu de hardcoder "all_submitted").
+    const derivedReason = msg.currentResult.stoppedBy ? "stop" : "all_submitted";
     state.renderValidationStart({
-      reason: "all_submitted",
-      stoppedBy: null,
+      reason: derivedReason,
+      stoppedBy: msg.currentResult.stoppedBy,
       categories: msg.config?.categories ?? [],
       totalRounds: msg.config?.totalRounds ?? 0,
       result: msg.currentResult,
@@ -331,6 +334,10 @@ conn.on("cell_state_update", (msg) => {
   if (state.applyCellStateUpdate) state.applyCellStateUpdate(msg.cellStates);
 });
 
+conn.on("cheater_cheats_update", (msg) => {
+  if (state.applyCheaterCountUpdate) state.applyCheaterCountUpdate(msg.count);
+});
+
 conn.on("round_scored", (msg) => {
   state.phase = "scoring";
   state.players = msg.players;
@@ -349,20 +356,53 @@ conn.on("game_finished", (msg) => {
 });
 
 // ===========================================
-// 7. Bouton "Copier le code"
+// 7. Bouton "Copier le lien d'invitation"
 // ===========================================
+
+/**
+ * Construit l'URL d'invitation a partager.
+ *
+ * On part de window.location.origin + window.location.pathname, et on remplace
+ * room.html par index.html, puis on ajoute #CODE en hash.
+ * Exemple :
+ *   https://profdetweener.github.io/petitbac/room.html?code=ABC123
+ *   -> https://profdetweener.github.io/petitbac/index.html#ABC123
+ */
+function buildInviteUrl(code) {
+  const origin = window.location.origin || "";
+  let path = window.location.pathname || "/";
+  // On normalise : room.html -> index.html. Si la page est servie sans nom de
+  // fichier (path se termine par "/"), on ajoute index.html par securite.
+  if (path.endsWith("room.html")) {
+    path = path.replace(/room\.html$/, "index.html");
+  } else if (path.endsWith("/")) {
+    path = path + "index.html";
+  }
+  return `${origin}${path}#${code}`;
+}
+
+const inviteUrl = buildInviteUrl(roomCode);
+
+// Affichage du lien dans le bandeau de la room
+const inviteUrlEl = document.getElementById("invite-url");
+if (inviteUrlEl) inviteUrlEl.textContent = inviteUrl;
 
 const copyBtn = document.getElementById("copy-btn");
 copyBtn.addEventListener("click", async () => {
   try {
-    await navigator.clipboard.writeText(roomCode);
-    showToast("Code copie !", { type: "success", duration: 1500 });
+    await navigator.clipboard.writeText(inviteUrl);
+    showToast("Lien copie !", { type: "success", duration: 1500 });
   } catch {
-    const range = document.createRange();
-    range.selectNode(document.getElementById("room-code"));
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-    showToast("Selectionne et copie le code (Ctrl+C).", { duration: 2500 });
+    // Fallback : on selectionne le span avec l'URL pour copier a la main
+    if (inviteUrlEl) {
+      const range = document.createRange();
+      range.selectNode(inviteUrlEl);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      showToast("Selectionne et copie le lien (Ctrl+C).", { duration: 2500 });
+    } else {
+      showToast("Impossible de copier automatiquement.", { type: "error" });
+    }
   }
 });
 
