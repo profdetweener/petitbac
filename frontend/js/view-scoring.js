@@ -126,7 +126,7 @@ export function initScoringView(state, conn) {
         totalDetail.className = "score-total-breakdown";
         // ex: "30 - 10 = 20" (raw, |penalty|, totalScore)
         totalDetail.textContent = `${raw} − ${Math.abs(penalty)}`;
-        totalDetail.title = "Malus tricheur applique pour avoir stoppe la manche avec des reponses tricheuses";
+        totalDetail.title = "Malus tricheur appliqué pour avoir stoppé la manche avec des réponses tricheuses";
         tdTotal.appendChild(totalMain);
         tdTotal.appendChild(totalDetail);
         tr.classList.add("has-cheater-penalty");
@@ -145,7 +145,7 @@ export function initScoringView(state, conn) {
       cheaterNote.className = "cheater-applied-note";
       const cheats = result.cheaterCheats ?? 0;
       const perCheat = state.config?.scoring?.cheaterPenaltyPerCheat ?? 0;
-      cheaterNote.textContent = `⚠️ Malus tricheur applique a ${result.stoppedBy} : ${cheats} categorie(s) × ${perCheat} = ${result.cheaterPenalty} pts`;
+      cheaterNote.textContent = `⚠️ Malus tricheur appliqué à ${result.stoppedBy} : ${cheats} catégorie(s) × ${perCheat} = ${result.cheaterPenalty} pts`;
       tableEl.parentElement.insertBefore(cheaterNote, tableEl.nextSibling);
     }
 
@@ -193,7 +193,7 @@ export function initScoringView(state, conn) {
   });
 
   endGameBtn.addEventListener("click", () => {
-    if (confirm("Es-tu sur ? Cela mettra fin a la partie maintenant et passera directement au classement final.")) {
+    if (confirm("Es-tu sûr(e) ? Cela mettra fin à la partie maintenant et passera directement au classement final.")) {
       conn.send({ type: "end_game" });
     }
   });

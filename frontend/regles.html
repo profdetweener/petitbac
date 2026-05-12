@@ -41,7 +41,14 @@
           <li><strong>Durée d'une manche</strong> : entre 30 secondes et 5 minutes.</li>
           <li><strong>Fin de manche</strong> : « STOP ou timer » (un joueur peut interrompre la manche dès qu'il a fini) ou « Timer uniquement » (tout le monde joue jusqu'au bout du chrono, sans STOP possible).</li>
           <li><strong>Barème de score</strong> : combien de points pour chaque type de réponse (modifiable, mais les valeurs par défaut sont équilibrées).</li>
-          <li><strong>Malus tricheur au STOP</strong> : pénalité (≤ 0) appliquée au joueur qui stoppe la manche pour chaque catégorie jugée « tricheuse » par les autres (réponse syntaxiquement OK mais bidon, type « A » seul). 0 pour désactiver. Pendant la phase de vote, un compteur partagé permet d'ajuster le nombre de catégories tricheuses.</li>
+          <li>
+            <strong>Malus tricheur (bouton STOP)</strong> : nombre de points retirés (par catégorie tricheuse) au joueur qui a fait STOP sans avoir répondu de bonne foi.
+            Exemple : si la lettre est A et que quelqu'un écrit juste « A » dans toutes les cases puis fait STOP, c'est syntaxiquement valide mais c'est de la triche.
+            Pendant la phase de vote, un compteur partagé permet d'ajuster combien de catégories sont jugées tricheuses ; le malus est ensuite appliqué automatiquement au score de la manche du stoppeur. Mettre 0 désactive cette option.
+          </li>
+          <li>
+            <strong>Lettres à utiliser</strong> : choisis quelles lettres peuvent être tirées au sort. Par défaut, on exclut quelques lettres difficiles (K, Q, W, X, Y, Z). Un bouton permet de désactiver d'un coup les lettres déjà sorties dans la room (très pratique pour ne pas retomber dessus quand on enchaîne les parties).
+          </li>
         </ul>
         <p>
           Quand au moins 2 joueurs sont connectés, l'hôte lance la partie.
@@ -51,20 +58,25 @@
       <section>
         <h3>2. Pendant la manche</h3>
         <p>
-          Une <strong>lettre est tirée au sort</strong>, et le chrono démarre.
+          Une <strong>lettre est tirée au sort</strong> (parmi celles activées par l'hôte), et le chrono démarre.
           Tu dois remplir chaque catégorie avec un mot qui commence par cette
           lettre.
         </p>
         <p>
           Le bouton <strong>STOP — j'ai terminé</strong> ne s'active que lorsque
-          toutes tes cases sont remplies. Un joueur peut alors cliquer dessus
+          <strong>toutes tes cases sont remplies</strong> ET que <strong>toutes commencent
+          par la bonne lettre</strong>. Un joueur peut alors cliquer dessus
           pour <strong>arrêter la manche pour tout le monde</strong>. Sinon,
           la manche se termine automatiquement quand le chrono atteint zéro.
+        </p>
+        <p>
+          En mode <strong>« Timer uniquement »</strong>, le bouton STOP n'est pas affiché :
+          tout le monde joue jusqu'à la fin du chrono.
         </p>
         <p class="legal-note">
           Astuce : la touche <strong>Entrée</strong> (ou Tab) passe au champ
           suivant. Sur la dernière case, Entrée déclenche directement
-          <strong>STOP</strong> si toutes les cases sont remplies.
+          <strong>STOP</strong> si la grille est valide.
         </p>
       </section>
 

@@ -164,7 +164,7 @@ client.on("error", (msg) => {
 client.onClose((event) => {
   // Code 4000 = kick par le host (geree au-dessus). Sinon : deconnexion normale ou reseau.
   if (event.code !== 4000) {
-    setStatus("deconnecte");
+    setStatus("déconnecté");
   }
 });
 

@@ -241,6 +241,27 @@ input.code-input::placeholder {
 .scoring-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .scoring-grid input { font-size: 18px; font-weight: 700; text-align: center; }
 
+/* Nombre de manches : input + case a cocher "Illimite" cote a cote */
+.rounds-control {
+  display: flex; align-items: center; gap: 12px;
+}
+.rounds-control > input[type="number"] {
+  flex: 1; min-width: 0;
+  font-size: 18px; font-weight: 700; text-align: center;
+}
+.rounds-control > input[type="number"]:disabled {
+  background: var(--beige);
+  color: var(--gris-clair);
+  cursor: not-allowed;
+}
+.rounds-unlimited {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 14px; color: var(--bleu-nuit);
+  cursor: pointer; white-space: nowrap;
+  padding: 6px 4px;
+}
+.rounds-unlimited input { width: 18px; height: 18px; cursor: pointer; }
+
 /* Separateur visuel entre sections de config */
 .config-sep {
   border: none;

@@ -43,13 +43,13 @@
         <h3 style="margin-top: 24px;">⚙️ Configuration de la partie</h3>
 
         <div class="form-group">
-          <label>Categories de la grille</label>
+          <label>Catégories de la grille</label>
           <div class="categories-presets" id="categories-presets"></div>
           <div class="categories-custom">
             <input
               type="text"
               id="custom-category-input"
-              placeholder="Ajouter une categorie personnalisee"
+              placeholder="Ajouter une catégorie personnalisée"
               maxlength="30"
             >
             <button class="btn btn-secondary btn-sm" id="add-category-btn">+ Ajouter</button>
@@ -62,24 +62,25 @@
         <div class="form-row">
           <div class="form-group">
             <label for="rounds-input">Nombre de manches</label>
-            <select id="rounds-input">
-              <option value="3">3 manches</option>
-              <option value="5" selected>5 manches</option>
-              <option value="7">7 manches</option>
-              <option value="0">Illimite (jusqu'a stop manuel)</option>
-            </select>
+            <div class="rounds-control">
+              <input type="number" id="rounds-input" value="5" min="1" max="100" step="1">
+              <label class="rounds-unlimited">
+                <input type="checkbox" id="rounds-unlimited-input">
+                <span>Illimité</span>
+              </label>
+            </div>
           </div>
           <div class="form-group">
-            <label for="timer-input">Duree par manche (sec)</label>
+            <label for="timer-input">Durée par manche (sec)</label>
             <input type="number" id="timer-input" value="90" min="30" max="300" step="10">
           </div>
         </div>
 
         <div class="form-group">
-          <label>Bareme de score</label>
+          <label>Barème de score</label>
           <div class="scoring-grid">
             <div>
-              <label class="sub-label" for="score-alone">Seul a repondre</label>
+              <label class="sub-label" for="score-alone">Seul à répondre</label>
               <input type="number" id="score-alone" value="15" min="-100" max="100">
             </div>
             <div>
@@ -109,7 +110,7 @@
             <label for="score-cheater">Malus tricheur (bouton STOP)</label>
             <input type="number" id="score-cheater" value="0" min="0" max="100" step="1">
             <p class="info-line" style="font-size: 12px; margin-top: 4px;">
-              Nombre de points retires (par categorie tricheuse) au joueur qui a fait STOP sans avoir repondu de bonne foi. Mettre 0 desactive cette option.
+              Nombre de points retirés (par catégorie tricheuse) au joueur qui a fait STOP sans avoir répondu de bonne foi. Mettre 0 désactive cette option.
             </p>
           </div>
         </div>
@@ -117,37 +118,37 @@
         <hr class="config-sep">
 
         <div class="form-group">
-          <label>Lettres a utiliser</label>
+          <label>Lettres à utiliser</label>
           <p class="info-line" style="font-size: 12px; margin-top: -4px; margin-bottom: 8px;">
-            Clique sur une lettre pour l'activer / la desactiver. Il faut au moins 1 lettre selectionnee.
+            Clique sur une lettre pour l'activer / la désactiver. Il faut au moins 1 lettre sélectionnée.
           </p>
           <div class="letters-grid" id="letters-grid"></div>
           <div class="letters-actions">
             <button type="button" class="btn btn-secondary btn-sm" id="letters-select-all">Toutes</button>
             <button type="button" class="btn btn-secondary btn-sm" id="letters-select-none">Aucune</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="letters-select-default">Defaut</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="letters-select-default">Défaut</button>
             <button type="button" class="btn btn-secondary btn-sm" id="letters-deselect-last" style="display: none;">
-              Desactiver les lettres deja sorties
+              Désactiver les lettres déjà sorties
             </button>
           </div>
           <p class="info-line letters-last-info" id="letters-last-info" style="display: none; font-size: 12px; margin-top: 6px;"></p>
         </div>
 
         <button class="btn btn-primary btn-block" id="btn-start-game">
-          🚀 Demarrer la partie
+          🚀 Démarrer la partie
         </button>
         <p class="info-line" style="margin-top: 8px; text-align: center;">
-          Minimum 2 joueurs connectes
+          Minimum 2 joueurs connectés
         </p>
       </div>
 
-      <!-- Vue lecture seule pour les non-hotes : visualisation de la config en direct -->
+      <!-- Vue lecture seule pour les non-hôtes : visualisation de la config en direct -->
       <div class="guest-config" id="guest-config" style="display: none;">
         <h3 style="margin-top: 24px;">📋 Configuration de la partie</h3>
-        <p class="info-line">L'hote configure la partie. Les parametres se mettent a jour en temps reel.</p>
+        <p class="info-line">L'hôte configure la partie. Les paramètres se mettent à jour en temps réel.</p>
 
         <div class="form-group">
-          <label class="sub-label">Categories</label>
+          <label class="sub-label">Catégories</label>
           <ul class="categories-selected" id="guest-categories"></ul>
         </div>
 
@@ -159,15 +160,15 @@
             <div class="readonly-value" id="guest-rounds">—</div>
           </div>
           <div class="form-group">
-            <label class="sub-label">Duree par manche</label>
+            <label class="sub-label">Durée par manche</label>
             <div class="readonly-value" id="guest-timer">—</div>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="sub-label">Bareme de score</label>
+          <label class="sub-label">Barème de score</label>
           <div class="scoring-grid">
-            <div><label class="sub-label">Seul a repondre</label><div class="readonly-value" id="guest-score-alone">—</div></div>
+            <div><label class="sub-label">Seul à répondre</label><div class="readonly-value" id="guest-score-alone">—</div></div>
             <div><label class="sub-label">Unique (parmi plusieurs)</label><div class="readonly-value" id="guest-score-unique">—</div></div>
             <div><label class="sub-label">En doublon</label><div class="readonly-value" id="guest-score-duplicate">—</div></div>
             <div><label class="sub-label">Vide / invalide</label><div class="readonly-value" id="guest-score-invalid">—</div></div>
@@ -188,17 +189,17 @@
         <hr class="config-sep">
 
         <div class="form-group">
-          <label class="sub-label">Lettres utilisees</label>
+          <label class="sub-label">Lettres utilisées</label>
           <div class="letters-grid letters-grid-readonly" id="guest-letters"></div>
         </div>
 
         <p class="info-line" style="text-align: center; font-style: italic;">
-          ⏳ En attente du lancement de la partie par l'hote…
+          ⏳ En attente du lancement de la partie par l'hôte…
         </p>
       </div>
 
       <div style="margin-top: 24px; text-align: center;">
-        <a href="index.html" class="btn btn-secondary btn-sm">← Retour a l'accueil</a>
+        <a href="index.html" class="btn btn-secondary btn-sm">← Retour à l'accueil</a>
       </div>
     </div>
 
@@ -231,7 +232,7 @@
 
       <div class="round-actions">
         <button type="button" class="btn btn-danger btn-block" id="btn-stop">
-          🛑 STOP — j'ai termine
+          🛑 STOP — j'ai terminé
         </button>
         <p class="info-line" id="submission-status"></p>
       </div>
@@ -253,16 +254,16 @@
       </div>
 
       <p class="info-line" style="margin-bottom: 16px;">
-        🗳️ Vote pour ou contre chaque reponse des autres joueurs.
-        Une reponse acceptee a la majorite simple sera validee.
+        🗳️ Vote pour ou contre chaque réponse des autres joueurs.
+        Une réponse acceptée à la majorité simple sera validée.
       </p>
 
-      <!-- Zone de malus tricheur (visible uniquement si STOP + malus configure) -->
+      <!-- Zone de malus tricheur (visible uniquement si STOP + malus configuré) -->
       <div class="cheater-panel" id="cheater-panel" style="display: none;">
         <div class="cheater-panel-info">
           <strong id="cheater-panel-title">Malus tricheur</strong>
           <p id="cheater-panel-desc" class="info-line">
-            <span id="cheater-stopper">—</span> a stoppe la manche. Combien de categories sont "tricheuses" (lettre OK mais reponse abusive type "A" seul) ?
+            <span id="cheater-stopper">—</span> a stoppé la manche. Combien de catégories sont "tricheuses" (lettre OK mais réponse abusive type "A" seul) ?
           </p>
           <p class="info-line" id="cheater-panel-result"></p>
         </div>
@@ -286,7 +287,7 @@
         </button>
       </div>
       <p class="info-line" id="validation-waiting" style="text-align: center;">
-        En attente de l'hote pour passer aux scores…
+        En attente de l'hôte pour passer aux scores…
       </p>
     </div>
 
@@ -297,7 +298,7 @@
           <span class="round-label">Manche</span>
           <span class="round-number" id="sc-round-number">1</span>
           <span class="round-total" id="sc-round-total"></span>
-          <span> &mdash; Resultats</span>
+          <span> &mdash; Résultats</span>
         </div>
         <div class="letter-display">
           <span class="letter-label">Lettre</span>
@@ -311,7 +312,7 @@
       </div>
 
       <div class="scores-section">
-        <h3>Classement cumule</h3>
+        <h3>Classement cumulé</h3>
         <ol class="ranking-list" id="cumulative-ranking"></ol>
       </div>
 
@@ -324,7 +325,7 @@
         </button>
       </div>
       <p class="info-line" id="scoring-waiting" style="text-align: center;">
-        En attente de l'hote…
+        En attente de l'hôte…
       </p>
     </div>
 

@@ -114,14 +114,14 @@ conn.onStatus((status) => {
   const textEl = connectionStatusEl.querySelector(".text");
   if (status === "open") {
     connectionStatusEl.classList.add("connected");
-    textEl.textContent = "connecte";
+    textEl.textContent = "connecté";
     conn.send({ type: "join", pseudo: state.myPseudo });
   } else if (status === "connecting") {
     connectionStatusEl.classList.add("connecting");
     textEl.textContent = "connexion…";
   } else {
     connectionStatusEl.classList.add("disconnected");
-    textEl.textContent = "deconnecte (reconnexion auto)";
+    textEl.textContent = "déconnecté (reconnexion auto)";
   }
 });
 
@@ -214,7 +214,7 @@ conn.on("room_state", (msg) => {
   state.isHost = me ? me.isHost : false;
 
   if (!wasHost && state.isHost) {
-    showToast("Tu es devenu l'hote.", { type: "success" });
+    showToast("Tu es devenu l'hôte.", { type: "success" });
     // Migration d'hote en lobby : nos inputs affichaient la version "guest"
     // (lecture seule). On les synchronise avec la derniere config connue
     // pour que le nouvel hote reprenne exactement la config qui etait
@@ -251,7 +251,7 @@ conn.on("room_state", (msg) => {
 
 conn.on("kicked", (msg) => {
   conn.close();
-  alert(`Tu as ete exclu de la partie.\nRaison : ${msg.reason || "non precisee"}`);
+  alert(`Tu as été exclu de la partie.\nRaison : ${msg.reason || "non précisée"}`);
   window.location.href = "index.html";
 });
 
@@ -259,7 +259,7 @@ conn.on("error", (msg) => {
   console.warn("Erreur serveur :", msg);
   switch (msg.code) {
     case "PSEUDO_TAKEN":
-      state.showError && state.showError("Ce pseudo est deja pris.");
+      state.showError && state.showError("Ce pseudo est déjà pris.");
       conn.close();
       setTimeout(() => (window.location.href = "index.html"), 2500);
       break;
@@ -275,13 +275,13 @@ conn.on("error", (msg) => {
       if (state.phase === "lobby") {
         showToast(msg.message || "Action impossible dans cette phase.", { type: "error" });
       } else {
-        state.showError && state.showError(msg.message || "Une partie est deja en cours.");
+        state.showError && state.showError(msg.message || "Une partie est déjà en cours.");
         conn.close();
         setTimeout(() => (window.location.href = "index.html"), 2500);
       }
       break;
     case "NOT_HOST":
-      showToast("Seul l'hote peut faire ca.", { type: "error" });
+      showToast("Seul l'hôte peut faire ça.", { type: "error" });
       break;
     case "TARGET_NOT_FOUND":
     case "CANNOT_KICK_SELF":
@@ -405,7 +405,7 @@ const copyBtn = document.getElementById("copy-btn");
 copyBtn.addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(inviteUrl);
-    showToast("Lien copie !", { type: "success", duration: 1500 });
+    showToast("Lien copié !", { type: "success", duration: 1500 });
   } catch {
     // Fallback : on selectionne le span avec l'URL pour copier a la main
     if (inviteUrlEl) {
@@ -413,7 +413,7 @@ copyBtn.addEventListener("click", async () => {
       range.selectNode(inviteUrlEl);
       window.getSelection().removeAllRanges();
       window.getSelection().addRange(range);
-      showToast("Selectionne et copie le lien (Ctrl+C).", { duration: 2500 });
+      showToast("Sélectionne et copie le lien (Ctrl+C).", { duration: 2500 });
     } else {
       showToast("Impossible de copier automatiquement.", { type: "error" });
     }

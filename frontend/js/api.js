@@ -19,7 +19,7 @@ export async function createRoom() {
   }
   const data = await res.json();
   if (!data.code) {
-    throw new Error("Reponse invalide du serveur (pas de code)");
+    throw new Error("Réponse invalide du serveur (pas de code)");
   }
   return data.code;
 }
@@ -34,7 +34,7 @@ export async function roomExists(code) {
     `${CONFIG.WORKER_URL}/rooms/${encodeURIComponent(code)}/exists`
   );
   if (!res.ok) {
-    throw new Error(`Erreur verification room (HTTP ${res.status})`);
+    throw new Error(`Erreur vérification room (HTTP ${res.status})`);
   }
   const data = await res.json();
   return data.exists === true;

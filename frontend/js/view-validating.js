@@ -110,9 +110,9 @@ export function initValidatingView(state, conn) {
       case "timer":
         return "⏱️ Manche terminee : timer ecoule.";
       case "stop":
-        return `🛑 Manche stoppee par ${stoppedBy ?? "un joueur"}.`;
+        return `🛑 Manche stoppée par ${stoppedBy ?? "un joueur"}.`;
       case "all_submitted":
-        return "✅ Tous les joueurs ont termine.";
+        return "✅ Tous les joueurs ont terminé.";
       default:
         return "";
     }
@@ -124,7 +124,7 @@ export function initValidatingView(state, conn) {
     if (currentCategories.length === 0 || currentPseudos.length === 0) {
       const tr = document.createElement("tr");
       const td = document.createElement("td");
-      td.textContent = "Aucune donnee a afficher.";
+      td.textContent = "Aucune donnée à afficher.";
       td.style.padding = "20px";
       td.style.textAlign = "center";
       td.style.fontStyle = "italic";
@@ -209,7 +209,7 @@ export function initValidatingView(state, conn) {
       uniqueBtn.type = "button";
       uniqueBtn.className = "vote-btn unique";
       uniqueBtn.textContent = "✓";
-      uniqueBtn.title = "OK unique : reponse correcte, pas de doublon";
+      uniqueBtn.title = "OK unique : réponse correcte, pas de doublon";
       if (currentState === "unique") uniqueBtn.classList.add("active");
       uniqueBtn.addEventListener("click", () => {
         conn.send({ type: "set_cell_state", targetPseudo: pseudo, category, state: "unique" });
@@ -219,7 +219,7 @@ export function initValidatingView(state, conn) {
       dupBtn.type = "button";
       dupBtn.className = "vote-btn duplicate";
       dupBtn.textContent = "≈";
-      dupBtn.title = "OK doublon : reponse correcte mais quelqu'un a dit pareil (meme avec faute)";
+      dupBtn.title = "OK doublon : réponse correcte mais quelqu'un a dit pareil (même avec faute)";
       if (currentState === "duplicate") dupBtn.classList.add("active");
       dupBtn.addEventListener("click", () => {
         conn.send({ type: "set_cell_state", targetPseudo: pseudo, category, state: "duplicate" });
@@ -229,7 +229,7 @@ export function initValidatingView(state, conn) {
       rejBtn.type = "button";
       rejBtn.className = "vote-btn reject";
       rejBtn.textContent = "✗";
-      rejBtn.title = "Refuser cette reponse";
+      rejBtn.title = "Refuser cette réponse";
       if (currentState === "reject") rejBtn.classList.add("active");
       rejBtn.addEventListener("click", () => {
         conn.send({ type: "set_cell_state", targetPseudo: pseudo, category, state: "reject" });
@@ -318,7 +318,7 @@ export function initValidatingView(state, conn) {
   endGameBtn.addEventListener("click", () => {
     if (
       confirm(
-        "Es-tu sur ? Cela mettra fin a la partie immediatement, sans calculer les scores de cette manche."
+        "Es-tu sûr(e) ? Cela mettra fin à la partie immediatement, sans calculer les scores de cette manche."
       )
     ) {
       conn.send({ type: "end_game" });

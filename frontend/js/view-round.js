@@ -54,11 +54,11 @@ export function initRoundView(state, conn) {
     // Mode "timer_only" : pas de bouton STOP du tout. Sinon affichage normal.
     if (currentEndMode === "timer_only") {
       stopBtn.style.display = "none";
-      submissionStatusEl.textContent = "Mode timer : la manche se termine quand le temps est ecoule. Pas de bouton STOP.";
+      submissionStatusEl.textContent = "Mode timer : la manche se termine quand le temps est écoulé. Pas de bouton STOP.";
     } else {
       stopBtn.style.display = "";
       stopBtn.disabled = true; // grise par defaut, active quand toutes les cases sont remplies
-      stopBtn.textContent = "🛑 STOP — j'ai termine";
+      stopBtn.textContent = "🛑 STOP — j'ai terminé";
       submissionStatusEl.textContent = "Remplis toutes les cases (avec la bonne lettre) pour pouvoir cliquer STOP.";
     }
 
@@ -118,7 +118,7 @@ export function initRoundView(state, conn) {
         (v) => typeof v === "string" && v.trim().length > 0
       ).length;
       if (nonEmpty > 0) {
-        showToast(`Tes ${nonEmpty} reponses ont ete restaurees.`, {
+        showToast(`Tes ${nonEmpty} réponses ont été restaurées.`, {
           type: "success",
           duration: 2500,
         });
@@ -231,7 +231,7 @@ export function initRoundView(state, conn) {
       submissionStatusEl.textContent = `${filled} / ${total} cases remplies — remplis tout pour pouvoir cliquer STOP.`;
     } else {
       // Toutes remplies, mais certaines ne commencent pas par la lettre
-      submissionStatusEl.textContent = `${badLetter} reponse(s) ne commence(nt) pas par ${currentLetter} — corrige avant de cliquer STOP.`;
+      submissionStatusEl.textContent = `${badLetter} réponse(s) ne commence(nt) pas par ${currentLetter} — corrige avant de cliquer STOP.`;
     }
   }
 
@@ -277,7 +277,7 @@ export function initRoundView(state, conn) {
         ),
         letter: currentLetter,
       });
-      showToast(`Toutes tes reponses doivent commencer par ${currentLetter}.`, { type: "error" });
+      showToast(`Toutes tes réponses doivent commencer par ${currentLetter}.`, { type: "error" });
       refreshStopButton();
       return;
     }
@@ -290,10 +290,10 @@ export function initRoundView(state, conn) {
     conn.send({ type: "submit_answers", answers: collectAnswers() });
     conn.send({ type: "stop_round" });
     stopBtn.disabled = true;
-    stopBtn.textContent = "Manche stoppee, en attente de la suite…";
-    submissionStatusEl.textContent = "Tes reponses ont ete envoyees.";
+    stopBtn.textContent = "Manche stoppée, en attente de la suite…";
+    submissionStatusEl.textContent = "Tes réponses ont été envoyées.";
     if (rsbEl) rsbEl.classList.add("stopped");
-    showToast("STOP envoye.", { type: "success", duration: 1500 });
+    showToast("STOP envoyé.", { type: "success", duration: 1500 });
   });
 
   // --- Navigation au clavier ---
@@ -318,6 +318,6 @@ export function initRoundView(state, conn) {
   // --- Notifications "X a fini" ---
   state.onAnswersReceived = function (pseudo) {
     if (pseudo === state.myPseudo) return;
-    submissionStatusEl.textContent = `${pseudo} a termine.`;
+    submissionStatusEl.textContent = `${pseudo} a terminé.`;
   };
 }

@@ -93,7 +93,7 @@ if (isJoinMode) {
 } else {
   subtitleCreate.style.display = "block";
   subtitleJoin.style.display = "none";
-  btnAction.textContent = "Creer une partie";
+  btnAction.textContent = "Créer une partie";
 }
 
 // --- Banniere "Reprendre la partie" ---
@@ -126,7 +126,7 @@ async function maybeShowResumeBanner() {
     maybeShowResumeBanner();
   } else {
     serverStatus.textContent = "✗ serveur injoignable";
-    showError("Impossible de joindre le serveur. Verifie ta connexion ou la config.");
+    showError("Impossible de joindre le serveur. Vérifie ta connexion ou la config.");
   }
 })();
 
@@ -147,10 +147,10 @@ if (resumeBannerDismiss) {
 function validatePseudo() {
   const value = pseudoInput.value.trim();
   if (value.length < PSEUDO_MIN) {
-    return { ok: false, error: `Pseudo trop court (min. ${PSEUDO_MIN} caracteres).` };
+    return { ok: false, error: `Pseudo trop court (min. ${PSEUDO_MIN} caractères).` };
   }
   if (value.length > PSEUDO_MAX) {
-    return { ok: false, error: `Pseudo trop long (max. ${PSEUDO_MAX} caracteres).` };
+    return { ok: false, error: `Pseudo trop long (max. ${PSEUDO_MAX} caractères).` };
   }
   return { ok: true, value };
 }
@@ -178,11 +178,11 @@ async function doAction() {
   if (isJoinMode) {
     // Mode Rejoindre : on verifie que la room existe puis on redirige
     btnAction.disabled = true;
-    btnAction.textContent = "Verification…";
+    btnAction.textContent = "Vérification…";
     try {
       const exists = await roomExists(inviteCode);
       if (!exists) {
-        showError("Cette partie n'existe pas (ou a expire). Demande un nouveau lien.");
+        showError("Cette partie n'existe pas (ou a expiré). Demande un nouveau lien.");
         btnAction.disabled = false;
         btnAction.textContent = "Rejoindre la partie";
         return;
@@ -192,7 +192,7 @@ async function doAction() {
       window.location.href = `room.html?code=${encodeURIComponent(inviteCode)}`;
     } catch (err) {
       console.error(err);
-      showError("Impossible de joindre le serveur. Reessaie dans un instant.");
+      showError("Impossible de joindre le serveur. Réessaie dans un instant.");
       btnAction.disabled = false;
       btnAction.textContent = "Rejoindre la partie";
     }
@@ -201,7 +201,7 @@ async function doAction() {
 
   // Mode Creer
   btnAction.disabled = true;
-  btnAction.textContent = "Creation…";
+  btnAction.textContent = "Création…";
   try {
     const code = await createRoom();
     storage.setItem("petitbac_pseudo", pseudoCheck.value);
@@ -209,9 +209,9 @@ async function doAction() {
     window.location.href = `room.html?code=${encodeURIComponent(code)}`;
   } catch (err) {
     console.error(err);
-    showError("Impossible de creer la room. Reessaie dans un instant.");
+    showError("Impossible de créer la room. Réessaie dans un instant.");
     btnAction.disabled = false;
-    btnAction.textContent = "Creer une partie";
+    btnAction.textContent = "Créer une partie";
   }
 }
 

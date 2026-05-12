@@ -25,7 +25,7 @@ class PetitBacClient {
       try {
         data = JSON.parse(event.data);
       } catch {
-        console.error("Message non-JSON recu :", event.data);
+        console.error("Message non-JSON reçu :", event.data);
         return;
       }
       const type = data.type;

@@ -22,6 +22,7 @@ export function initLobbyView(state, conn, currentRoomCode) {
   const addCategoryBtn = document.getElementById("add-category-btn");
   const selectedList = document.getElementById("categories-selected");
   const roundsInput = document.getElementById("rounds-input");
+  const roundsUnlimitedInput = document.getElementById("rounds-unlimited-input");
   const timerInput = document.getElementById("timer-input");
   const endModeInput = document.getElementById("end-mode-input");
   const scoreInputs = {
@@ -153,7 +154,7 @@ export function initLobbyView(state, conn, currentRoomCode) {
   }
   // Expose pour pouvoir l'appeler depuis lobby.js a la fin d'une partie
   state.saveLastGameLetters = saveLastGameLetters;
-  // Lit les lettres deja sorties UNIQUEMENT si elles concernent la room courante.
+  // Lit les lettres déjà sorties UNIQUEMENT si elles concernent la room courante.
   // Sinon (premiere partie de cette room, ou changement de room), on retourne [].
   // Ca evite que les lettres d'une room precedente s'affichent par erreur au
   // demarrage d'une nouvelle room.
@@ -163,7 +164,7 @@ export function initLobbyView(state, conn, currentRoomCode) {
     if (stored.roomCode !== currentRoomCode) return [];
     return stored.letters;
   }
-  // Expose pour rafraichir l'affichage des badges "lettres deja sorties" quand
+  // Expose pour rafraichir l'affichage des badges "lettres déjà sorties" quand
   // l'host revient au lobby apres une partie (les lettres viennent d'etre
   // memorisees en storage via game_finished).
   state.refreshLobbyLettersFromStorage = function () {
@@ -203,7 +204,17 @@ export function initLobbyView(state, conn, currentRoomCode) {
   state.pushHostConfigNow = pushConfigNow;
 
   function buildCurrentConfig() {
-    const totalRounds = parseInt(roundsInput.value, 10);
+    // Nombre de manches : 0 = illimité côté protocole serveur.
+    // Si la case "Illimité" est cochée, on force 0. Sinon on lit l'input
+    // (et on garantit au minimum 1 manche pour ne pas envoyer une partie
+    // vide par erreur de saisie).
+    let totalRounds;
+    if (roundsUnlimitedInput && roundsUnlimitedInput.checked) {
+      totalRounds = 0;
+    } else {
+      const parsed = parseInt(roundsInput.value, 10);
+      totalRounds = Number.isFinite(parsed) && parsed >= 1 ? parsed : 5;
+    }
     const timerSeconds = parseInt(timerInput.value, 10);
     // L'utilisateur saisit un nombre positif (0-100). On le convertit en valeur
     // negative (= malus) pour le protocole serveur. Tolerant : si l'utilisateur
@@ -228,7 +239,7 @@ export function initLobbyView(state, conn, currentRoomCode) {
       .join("");
     return {
       categories: [...localCategories],
-      totalRounds: Number.isFinite(totalRounds) ? totalRounds : 5,
+      totalRounds,
       timerSeconds: Number.isFinite(timerSeconds) ? timerSeconds : 90,
       scoring,
       endMode,
@@ -248,7 +259,7 @@ export function initLobbyView(state, conn, currentRoomCode) {
         localCategories.delete(cat);
       } else {
         if (localCategories.size >= LIMITS.MAX_CATEGORIES) {
-          showToast(`Max ${LIMITS.MAX_CATEGORIES} categories.`, { type: "error" });
+          showToast(`Max ${LIMITS.MAX_CATEGORIES} catégories.`, { type: "error" });
           return;
         }
         localCategories.add(cat);
@@ -320,7 +331,7 @@ export function initLobbyView(state, conn, currentRoomCode) {
     }
     // Affiche ou cache le bouton et le texte d'info "derniere partie"
     if (lettersDeselectLastBtn) {
-      // Visible seulement s'il y a des lettres deja sorties ET qu'au moins
+      // Visible seulement s'il y a des lettres déjà sorties ET qu'au moins
       // une de ces lettres est actuellement selectionnee (sinon le bouton
       // ne ferait rien).
       const hasOverlap = lastGameLetters.some((l) => localLetters.has(l));
@@ -330,7 +341,7 @@ export function initLobbyView(state, conn, currentRoomCode) {
       if (lastGameLetters.length > 0) {
         lettersLastInfoEl.style.display = "";
         const sorted = [...lastGameLetters].sort();
-        lettersLastInfoEl.textContent = `Lettres deja sorties dans cette room : ${sorted.join(" ")}`;
+        lettersLastInfoEl.textContent = `Lettres déjà sorties dans cette room : ${sorted.join(" ")}`;
       } else {
         lettersLastInfoEl.style.display = "none";
       }
@@ -393,15 +404,15 @@ export function initLobbyView(state, conn, currentRoomCode) {
     const value = customInput.value.trim();
     if (!value) return;
     if (value.length > 30) {
-      showToast("Categorie trop longue (max 30 caracteres).", { type: "error" });
+      showToast("Catégorie trop longue (max 30 caractères).", { type: "error" });
       return;
     }
     if (localCategories.size >= LIMITS.MAX_CATEGORIES) {
-      showToast(`Max ${LIMITS.MAX_CATEGORIES} categories.`, { type: "error" });
+      showToast(`Max ${LIMITS.MAX_CATEGORIES} catégories.`, { type: "error" });
       return;
     }
     if ([...localCategories].some((c) => c.toLowerCase() === value.toLowerCase())) {
-      showToast("Categorie deja selectionnee.", { type: "error" });
+      showToast("Catégorie déjà sélectionnée.", { type: "error" });
       return;
     }
     localCategories.add(value);
@@ -423,6 +434,22 @@ export function initLobbyView(state, conn, currentRoomCode) {
     el.addEventListener("change", pushConfigSoon);
     el.addEventListener("input", pushConfigSoon);
   }
+
+  // --- Case "Illimité" pour le nombre de manches ---
+  // Quand elle est cochée, l'input "nombre de manches" est grisé et ignoré
+  // (totalRounds = 0 côté protocole).
+  function syncRoundsUnlimitedUI() {
+    if (!roundsUnlimitedInput) return;
+    const unlimited = roundsUnlimitedInput.checked;
+    roundsInput.disabled = unlimited;
+  }
+  if (roundsUnlimitedInput) {
+    roundsUnlimitedInput.addEventListener("change", () => {
+      syncRoundsUnlimitedUI();
+      pushConfigSoon();
+    });
+  }
+  syncRoundsUnlimitedUI();
 
   // --- Pre-selection : 5 categories classiques par defaut ---
   for (const c of ["Pays", "Ville", "Animal", "Prenom", "Metier"]) {
@@ -446,7 +473,7 @@ export function initLobbyView(state, conn, currentRoomCode) {
     }
     // Manches
     if (config.totalRounds === 0) {
-      guestEls.rounds.textContent = "Illimite";
+      guestEls.rounds.textContent = "Illimité";
     } else {
       guestEls.rounds.textContent = `${config.totalRounds} manches`;
     }
@@ -464,7 +491,7 @@ export function initLobbyView(state, conn, currentRoomCode) {
       if (guestEls.scoreCheater) {
         const cp = config.scoring.cheaterPenaltyPerCheat ?? 0;
         const cpAbs = Math.abs(cp);
-        guestEls.scoreCheater.textContent = cpAbs === 0 ? "desactive" : `-${cpAbs} pts / cat.`;
+        guestEls.scoreCheater.textContent = cpAbs === 0 ? "désactivé" : `-${cpAbs} pts / cat.`;
       }
     }
     // Lettres autorisees pour le tirage
@@ -478,7 +505,19 @@ export function initLobbyView(state, conn, currentRoomCode) {
     localCategories.clear();
     for (const c of config.categories || []) localCategories.add(c);
     renderCategoriesHost();
-    if (config.totalRounds !== undefined) roundsInput.value = String(config.totalRounds);
+    if (config.totalRounds !== undefined) {
+      // 0 cote serveur = illimité (case cochée, input grisé sur 5 par défaut
+      // pour ne pas afficher 0 dans un input bizarre)
+      if (config.totalRounds === 0) {
+        if (roundsUnlimitedInput) roundsUnlimitedInput.checked = true;
+        // On garde la valeur visible de l'input à 5 pour quand on décochera
+        if (!roundsInput.value || roundsInput.value === "0") roundsInput.value = "5";
+      } else {
+        if (roundsUnlimitedInput) roundsUnlimitedInput.checked = false;
+        roundsInput.value = String(config.totalRounds);
+      }
+      syncRoundsUnlimitedUI();
+    }
     if (config.timerSeconds !== undefined) timerInput.value = String(config.timerSeconds);
     if (config.endMode === "timer_only" || config.endMode === "stop_or_timer") {
       endModeInput.value = config.endMode;
@@ -527,7 +566,7 @@ export function initLobbyView(state, conn, currentRoomCode) {
       if (p.isHost) {
         const b = document.createElement("span");
         b.className = "player-badge host";
-        b.textContent = "Hote";
+        b.textContent = "Hôte";
         info.appendChild(b);
       }
       if (p.pseudo === state.myPseudo) {
@@ -581,12 +620,12 @@ export function initLobbyView(state, conn, currentRoomCode) {
   // --- Bouton "Demarrer la partie" ---
   startGameBtn.addEventListener("click", () => {
     if (localCategories.size < LIMITS.MIN_CATEGORIES) {
-      showToast(`Il faut au moins ${LIMITS.MIN_CATEGORIES} categories.`, { type: "error" });
+      showToast(`Il faut au moins ${LIMITS.MIN_CATEGORIES} catégories.`, { type: "error" });
       return;
     }
     const config = buildCurrentConfig();
     if ([config.scoring.aloneInCategory, config.scoring.uniqueAnswer, config.scoring.duplicateAnswer, config.scoring.invalidOrEmpty].some((n) => Number.isNaN(n))) {
-      showToast("Bareme invalide.", { type: "error" });
+      showToast("Barème invalide.", { type: "error" });
       return;
     }
     // Idem que pushConfigSoon : on synchronise state.config localement
