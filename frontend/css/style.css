@@ -267,6 +267,12 @@ input.code-input::placeholder {
   cursor: pointer;
   transition: all 0.15s;
   min-height: 36px;
+  /* Forcer le centrage meme quand l'element est un <span> (vue guest readonly) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
 }
 .letter-btn:hover { border-color: var(--bleu-accent); }
 .letter-btn.selected {
@@ -293,13 +299,19 @@ input.code-input::placeholder {
   color: var(--gris-texte);
 }
 
-/* Variante "lecture seule" pour le guest : lettres non cliquables */
+/* Variante "lecture seule" pour le guest : lettres non cliquables.
+   Les lettres non selectionnees sont grisees mais doivent rester lisibles. */
 .letters-grid-readonly .letter-btn {
   cursor: default;
   pointer-events: none;
 }
 .letters-grid-readonly .letter-btn:not(.selected) {
-  opacity: 0.4;
+  /* Plus visible que avant : on baisse l'opacite moins fort et on change
+     la couleur de texte pour qu'on lise quand meme la lettre. */
+  background: var(--beige);
+  border-color: var(--beige-fonce);
+  color: var(--gris-texte);
+  opacity: 0.7;
 }
 
 .readonly-value {

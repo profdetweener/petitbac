@@ -196,9 +196,9 @@ conn.on("joined", (msg) => {
     });
   } else if (msg.phase === "finished" && msg.finalRanking) {
     // Memoriser les lettres tirees pour la prochaine partie (joueur arrivant
-    // alors qu'une partie vient de se terminer).
+    // alors qu'une partie vient de se terminer). Accumulation par roomCode.
     if (Array.isArray(msg.drawnLetters) && state.saveLastGameLetters) {
-      state.saveLastGameLetters(msg.drawnLetters);
+      state.saveLastGameLetters(msg.drawnLetters, roomCode);
     }
     state.renderFinished(msg.finalRanking);
   }
@@ -359,9 +359,11 @@ conn.on("round_scored", (msg) => {
 
 conn.on("game_finished", (msg) => {
   state.phase = "finished";
-  // Memoriser les lettres tirees pour la prochaine partie (UI lobby host)
+  // Memoriser les lettres tirees pour la prochaine partie (UI lobby host).
+  // On accumule par roomCode : tant qu'on reste dans la meme room, les
+  // lettres s'ajoutent au fil des parties successives.
   if (Array.isArray(msg.drawnLetters) && state.saveLastGameLetters) {
-    state.saveLastGameLetters(msg.drawnLetters);
+    state.saveLastGameLetters(msg.drawnLetters, roomCode);
   }
   state.renderFinished(msg.ranking);
   showView("finished");

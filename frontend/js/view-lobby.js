@@ -92,17 +92,61 @@ export function initLobbyView(state, conn) {
   function loadLastGameLetters() {
     try {
       const raw = lobbyStorage.getItem("petitbac_last_letters");
-      if (!raw) return [];
+      if (!raw) return { roomCode: null, letters: [] };
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      return parsed.filter((l) => typeof l === "string" && /^[A-Z]$/.test(l));
+      // Support de l'ancien format (array nu) pour les sessions deja en cours
+      if (Array.isArray(parsed)) {
+        return {
+          roomCode: null,
+          letters: parsed.filter((l) => typeof l === "string" && /^[A-Z]$/.test(l)),
+        };
+      }
+      if (parsed && typeof parsed === "object" && Array.isArray(parsed.letters)) {
+        return {
+          roomCode: typeof parsed.roomCode === "string" ? parsed.roomCode : null,
+          letters: parsed.letters.filter((l) => typeof l === "string" && /^[A-Z]$/.test(l)),
+        };
+      }
+      return { roomCode: null, letters: [] };
     } catch {
-      return [];
+      return { roomCode: null, letters: [] };
     }
   }
-  function saveLastGameLetters(letters) {
+  /**
+   * Sauvegarde les lettres tirees lors d'une partie.
+   *
+   * Accumule les lettres tant qu'on reste dans la meme room (memes joueurs,
+   * meme code). Si on detecte un changement de roomCode, on repart de zero.
+   */
+  function saveLastGameLetters(newLetters, roomCode) {
     try {
-      lobbyStorage.setItem("petitbac_last_letters", JSON.stringify(letters));
+      const stored = loadLastGameLetters();
+      let acc;
+      if (stored.roomCode && stored.roomCode === roomCode) {
+        // Meme room : on accumule (sans doublon, en preservant l'ordre d'apparition)
+        const seen = new Set(stored.letters);
+        acc = [...stored.letters];
+        for (const l of newLetters) {
+          if (typeof l === "string" && /^[A-Z]$/.test(l) && !seen.has(l)) {
+            seen.add(l);
+            acc.push(l);
+          }
+        }
+      } else {
+        // Room differente ou inconnue : on repart de zero
+        const seen = new Set();
+        acc = [];
+        for (const l of newLetters) {
+          if (typeof l === "string" && /^[A-Z]$/.test(l) && !seen.has(l)) {
+            seen.add(l);
+            acc.push(l);
+          }
+        }
+      }
+      lobbyStorage.setItem(
+        "petitbac_last_letters",
+        JSON.stringify({ roomCode: roomCode ?? null, letters: acc })
+      );
     } catch {
       /* silencieux : pas grave si le storage refuse */
     }
@@ -113,10 +157,10 @@ export function initLobbyView(state, conn) {
   // l'host revient au lobby apres une partie (les lettres viennent d'etre
   // memorisees en storage via game_finished).
   state.refreshLobbyLettersFromStorage = function () {
-    lastGameLetters = loadLastGameLetters();
+    lastGameLetters = loadLastGameLetters().letters;
     renderLettersHost();
   };
-  lastGameLetters = loadLastGameLetters();
+  lastGameLetters = loadLastGameLetters().letters;
 
   // --- Debounce pour ne pas spammer le serveur a chaque keystroke ---
   let pushConfigTimeoutId = null;
@@ -266,8 +310,8 @@ export function initLobbyView(state, conn) {
     }
     // Affiche ou cache le bouton et le texte d'info "derniere partie"
     if (lettersDeselectLastBtn) {
-      // Visible seulement s'il y a des lettres de la derniere partie ET qu'au
-      // moins une de ces lettres est actuellement selectionnee (sinon le bouton
+      // Visible seulement s'il y a des lettres deja sorties ET qu'au moins
+      // une de ces lettres est actuellement selectionnee (sinon le bouton
       // ne ferait rien).
       const hasOverlap = lastGameLetters.some((l) => localLetters.has(l));
       lettersDeselectLastBtn.style.display = hasOverlap ? "" : "none";
@@ -275,7 +319,8 @@ export function initLobbyView(state, conn) {
     if (lettersLastInfoEl) {
       if (lastGameLetters.length > 0) {
         lettersLastInfoEl.style.display = "";
-        lettersLastInfoEl.textContent = `Lettres de la derniere partie : ${lastGameLetters.join(" ")}`;
+        const sorted = [...lastGameLetters].sort();
+        lettersLastInfoEl.textContent = `Lettres deja sorties dans cette room : ${sorted.join(" ")}`;
       } else {
         lettersLastInfoEl.style.display = "none";
       }
