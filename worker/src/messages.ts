@@ -100,6 +100,12 @@ export interface GameConfig {
    * comme "stop_or_timer" (comportement historique).
    */
   endMode?: EndMode;
+  /**
+   * Chaine de lettres autorisees pour le tirage (ex. "ABCDEFGH").
+   * Optionnel : si absent ou vide, le serveur retombe sur ROUND_CONFIG.LETTERS.
+   * Cote serveur, on normalise toujours en uppercase + dedup + filtre A-Z.
+   */
+  letterPool?: string;
 }
 
 // ===========================================
@@ -210,6 +216,9 @@ export type ServerMessage =
       // permet de restaurer la grille apres reconnexion / refresh.
       // null en dehors de in_round, ou si le joueur n'a encore rien soumis.
       myAnswers: Record<string, string> | null;
+      // Lettres deja tirees dans la partie en cours (ou la derniere terminee).
+      // Vide tant qu'aucune manche n'a demarre.
+      drawnLetters: string[];
     }
   | {
       type: "room_state";
@@ -270,6 +279,12 @@ export type ServerMessage =
   | {
       type: "game_finished";
       ranking: PlayerInfo[];
+      /**
+       * Lettres tirees au cours de la partie qui vient de se terminer,
+       * dans l'ordre de tirage. Permet au frontend de les memoriser pour
+       * proposer de les exclure de la prochaine partie.
+       */
+      drawnLetters: string[];
     };
 
 // ===========================================

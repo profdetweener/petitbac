@@ -182,5 +182,17 @@ export function validateGameConfig(
   if (c.endMode !== undefined && c.endMode !== "stop_or_timer" && c.endMode !== "timer_only") {
     return { ok: false, error: "Mode de fin de manche invalide." };
   }
+  // Champ optionnel : letterPool. Doit etre une chaine de caracteres A-Z (uppercase),
+  // au moins 1 lettre. Si absent ou invalide, le serveur retombe sur le pool par defaut.
+  if (c.letterPool !== undefined) {
+    if (typeof c.letterPool !== "string") {
+      return { ok: false, error: "Pool de lettres invalide." };
+    }
+    // On accepte le pool meme avec des minuscules ou doublons, le serveur normalisera.
+    const cleaned = c.letterPool.toUpperCase().replace(/[^A-Z]/g, "");
+    if (cleaned.length === 0) {
+      return { ok: false, error: "Au moins une lettre est requise." };
+    }
+  }
   return { ok: true };
 }

@@ -195,6 +195,11 @@ conn.on("joined", (msg) => {
       players: msg.players,
     });
   } else if (msg.phase === "finished" && msg.finalRanking) {
+    // Memoriser les lettres tirees pour la prochaine partie (joueur arrivant
+    // alors qu'une partie vient de se terminer).
+    if (Array.isArray(msg.drawnLetters) && state.saveLastGameLetters) {
+      state.saveLastGameLetters(msg.drawnLetters);
+    }
     state.renderFinished(msg.finalRanking);
   }
 
@@ -230,6 +235,11 @@ conn.on("room_state", (msg) => {
   // Le rendu depend de la phase active
   if (msg.phase === "lobby") {
     state.renderPlayers();
+    // Si on est l'hote qui revient au lobby apres une partie, rafraichir
+    // le rendu des lettres pour afficher le badge "dernieres lettres".
+    if (state.isHost && state.refreshLobbyLettersFromStorage) {
+      state.refreshLobbyLettersFromStorage();
+    }
   }
   // Mettre a jour l'affichage des actions host pour les autres vues
   if (state.refreshValidationHostState) state.refreshValidationHostState();
@@ -349,6 +359,10 @@ conn.on("round_scored", (msg) => {
 
 conn.on("game_finished", (msg) => {
   state.phase = "finished";
+  // Memoriser les lettres tirees pour la prochaine partie (UI lobby host)
+  if (Array.isArray(msg.drawnLetters) && state.saveLastGameLetters) {
+    state.saveLastGameLetters(msg.drawnLetters);
+  }
   state.renderFinished(msg.ranking);
   showView("finished");
 });

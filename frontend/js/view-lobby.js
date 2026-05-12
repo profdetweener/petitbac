@@ -33,6 +33,14 @@ export function initLobbyView(state, conn) {
   };
   const startGameBtn = document.getElementById("btn-start-game");
 
+  // --- References DOM lettres (host) ---
+  const lettersGridEl = document.getElementById("letters-grid");
+  const lettersSelectAllBtn = document.getElementById("letters-select-all");
+  const lettersSelectNoneBtn = document.getElementById("letters-select-none");
+  const lettersSelectDefaultBtn = document.getElementById("letters-select-default");
+  const lettersDeselectLastBtn = document.getElementById("letters-deselect-last");
+  const lettersLastInfoEl = document.getElementById("letters-last-info");
+
   // --- References DOM (guest) ---
   const guestEls = {
     categories: document.getElementById("guest-categories"),
@@ -44,10 +52,71 @@ export function initLobbyView(state, conn) {
     scoreDuplicate: document.getElementById("guest-score-duplicate"),
     scoreInvalid: document.getElementById("guest-score-invalid"),
     scoreCheater: document.getElementById("guest-score-cheater"),
+    letters: document.getElementById("guest-letters"),
   };
+
+  // --- Constantes lettres ---
+  // Alphabet francais complet (26 lettres) pour les chips de selection
+  const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  // Pool par defaut (mirror de ROUND_CONFIG.LETTERS cote serveur)
+  const DEFAULT_POOL = "ABCDEFGHIJLMNOPRSTUV";
 
   // --- Etat local de la config (host uniquement) ---
   const localCategories = new Set();
+  // Lettres autorisees pour le tirage. Initialisees au DEFAULT_POOL.
+  const localLetters = new Set(DEFAULT_POOL.split(""));
+  // Lettres tirees lors de la derniere partie (memorisees en localStorage).
+  // Sert a afficher le bouton "Desactiver les lettres de la derniere partie".
+  let lastGameLetters = [];
+
+  // --- Mini helper localStorage (best-effort, fallback in-memory) ---
+  const lobbyStorage = (() => {
+    function tryStorage(s) {
+      try {
+        const k = "__pbac_test__";
+        s.setItem(k, "1");
+        s.removeItem(k);
+        return s;
+      } catch {
+        return null;
+      }
+    }
+    return tryStorage(window.localStorage) ?? tryStorage(window.sessionStorage) ?? {
+      _m: new Map(),
+      getItem(k) { return this._m.get(k) ?? null; },
+      setItem(k, v) { this._m.set(k, v); },
+      removeItem(k) { this._m.delete(k); },
+    };
+  })();
+
+  function loadLastGameLetters() {
+    try {
+      const raw = lobbyStorage.getItem("petitbac_last_letters");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((l) => typeof l === "string" && /^[A-Z]$/.test(l));
+    } catch {
+      return [];
+    }
+  }
+  function saveLastGameLetters(letters) {
+    try {
+      lobbyStorage.setItem("petitbac_last_letters", JSON.stringify(letters));
+    } catch {
+      /* silencieux : pas grave si le storage refuse */
+    }
+  }
+  // Expose pour pouvoir l'appeler depuis lobby.js a la fin d'une partie
+  state.saveLastGameLetters = saveLastGameLetters;
+  // Expose pour rafraichir l'affichage des badges "dernieres lettres" quand
+  // l'host revient au lobby apres une partie (les lettres viennent d'etre
+  // memorisees en storage via game_finished).
+  state.refreshLobbyLettersFromStorage = function () {
+    lastGameLetters = loadLastGameLetters();
+    renderLettersHost();
+  };
+  lastGameLetters = loadLastGameLetters();
 
   // --- Debounce pour ne pas spammer le serveur a chaque keystroke ---
   let pushConfigTimeoutId = null;
@@ -55,7 +124,12 @@ export function initLobbyView(state, conn) {
     if (!state.isHost) return;
     if (pushConfigTimeoutId) clearTimeout(pushConfigTimeoutId);
     pushConfigTimeoutId = setTimeout(() => {
-      conn.send({ type: "config_update", config: buildCurrentConfig() });
+      const cfg = buildCurrentConfig();
+      // BUG FIX : l'hote ne recoit pas son propre config_update du serveur
+      // (broadcast excluding host), donc state.config restait sur la version
+      // du snapshot initial. On la met a jour localement ici.
+      state.config = cfg;
+      conn.send({ type: "config_update", config: cfg });
     }, 150);
   }
 
@@ -68,17 +142,22 @@ export function initLobbyView(state, conn) {
       clearTimeout(pushConfigTimeoutId);
       pushConfigTimeoutId = null;
     }
-    conn.send({ type: "config_update", config: buildCurrentConfig() });
+    const cfg = buildCurrentConfig();
+    state.config = cfg;
+    conn.send({ type: "config_update", config: cfg });
   }
   state.pushHostConfigNow = pushConfigNow;
 
   function buildCurrentConfig() {
     const totalRounds = parseInt(roundsInput.value, 10);
     const timerSeconds = parseInt(timerInput.value, 10);
+    // L'utilisateur saisit un nombre positif (0-100). On le convertit en valeur
+    // negative (= malus) pour le protocole serveur. Tolerant : si l'utilisateur
+    // a saisi un negatif par erreur, on prend la valeur absolue.
     let cheaterRaw = parseInt(scoreInputs.cheaterPenaltyPerCheat.value, 10);
     if (!Number.isFinite(cheaterRaw)) cheaterRaw = 0;
-    // Clamp cote client : doit etre <= 0, >= -100. La saisie est en negatif.
-    const cheaterPenaltyPerCheat = Math.max(-100, Math.min(0, cheaterRaw));
+    const cheaterAbs = Math.max(0, Math.min(100, Math.abs(cheaterRaw)));
+    const cheaterPenaltyPerCheat = -cheaterAbs; // <= 0 cote serveur
     const scoring = {
       aloneInCategory: parseInt(scoreInputs.aloneInCategory.value, 10) || 0,
       uniqueAnswer: parseInt(scoreInputs.uniqueAnswer.value, 10) || 0,
@@ -88,12 +167,18 @@ export function initLobbyView(state, conn) {
     };
     const endModeRaw = endModeInput.value;
     const endMode = endModeRaw === "timer_only" ? "timer_only" : "stop_or_timer";
+    // Pool de lettres : on assemble en ordre alphabetique pour stabilite
+    const letterPool = ALPHABET
+      .split("")
+      .filter((l) => localLetters.has(l))
+      .join("");
     return {
       categories: [...localCategories],
       totalRounds: Number.isFinite(totalRounds) ? totalRounds : 5,
       timerSeconds: Number.isFinite(timerSeconds) ? timerSeconds : 90,
       scoring,
       endMode,
+      letterPool,
     };
   }
 
@@ -142,6 +227,112 @@ export function initLobbyView(state, conn) {
     }
   }
 
+  // ==========================================================
+  // Section "Lettres a utiliser" (host)
+  // ==========================================================
+
+  // Build initial : un chip par lettre de l'alphabet
+  if (lettersGridEl) {
+    for (const letter of ALPHABET) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "letter-btn";
+      btn.dataset.letter = letter;
+      btn.textContent = letter;
+      btn.addEventListener("click", () => {
+        if (localLetters.has(letter)) {
+          if (localLetters.size <= 1) {
+            showToast("Il faut au moins une lettre.", { type: "error" });
+            return;
+          }
+          localLetters.delete(letter);
+        } else {
+          localLetters.add(letter);
+        }
+        renderLettersHost();
+        pushConfigSoon();
+      });
+      lettersGridEl.appendChild(btn);
+    }
+  }
+
+  function renderLettersHost() {
+    if (!lettersGridEl) return;
+    const lastSet = new Set(lastGameLetters);
+    for (const btn of lettersGridEl.children) {
+      const letter = btn.dataset.letter;
+      btn.classList.toggle("selected", localLetters.has(letter));
+      btn.classList.toggle("was-last-game", lastSet.has(letter));
+    }
+    // Affiche ou cache le bouton et le texte d'info "derniere partie"
+    if (lettersDeselectLastBtn) {
+      // Visible seulement s'il y a des lettres de la derniere partie ET qu'au
+      // moins une de ces lettres est actuellement selectionnee (sinon le bouton
+      // ne ferait rien).
+      const hasOverlap = lastGameLetters.some((l) => localLetters.has(l));
+      lettersDeselectLastBtn.style.display = hasOverlap ? "" : "none";
+    }
+    if (lettersLastInfoEl) {
+      if (lastGameLetters.length > 0) {
+        lettersLastInfoEl.style.display = "";
+        lettersLastInfoEl.textContent = `Lettres de la derniere partie : ${lastGameLetters.join(" ")}`;
+      } else {
+        lettersLastInfoEl.style.display = "none";
+      }
+    }
+  }
+
+  // Boutons d'action (toutes / aucune / defaut / desactiver les dernieres)
+  if (lettersSelectAllBtn) {
+    lettersSelectAllBtn.addEventListener("click", () => {
+      localLetters.clear();
+      for (const l of ALPHABET) localLetters.add(l);
+      renderLettersHost();
+      pushConfigSoon();
+    });
+  }
+  if (lettersSelectNoneBtn) {
+    lettersSelectNoneBtn.addEventListener("click", () => {
+      // On garde au moins une lettre : A (sinon le serveur refusera la config).
+      localLetters.clear();
+      localLetters.add("A");
+      renderLettersHost();
+      pushConfigSoon();
+    });
+  }
+  if (lettersSelectDefaultBtn) {
+    lettersSelectDefaultBtn.addEventListener("click", () => {
+      localLetters.clear();
+      for (const l of DEFAULT_POOL) localLetters.add(l);
+      renderLettersHost();
+      pushConfigSoon();
+    });
+  }
+  if (lettersDeselectLastBtn) {
+    lettersDeselectLastBtn.addEventListener("click", () => {
+      for (const l of lastGameLetters) localLetters.delete(l);
+      // Garde-fou : si on se retrouve avec 0 lettre, on remet A
+      if (localLetters.size === 0) localLetters.add("A");
+      renderLettersHost();
+      pushConfigSoon();
+    });
+  }
+
+  function renderLettersGuest(letterPool) {
+    if (!guestEls.letters) return;
+    const pool = (typeof letterPool === "string" ? letterPool : DEFAULT_POOL)
+      .toUpperCase().replace(/[^A-Z]/g, "");
+    const poolSet = new Set(pool.split(""));
+    guestEls.letters.innerHTML = "";
+    for (const letter of ALPHABET) {
+      const span = document.createElement("span");
+      span.className = "letter-btn";
+      if (poolSet.has(letter)) span.classList.add("selected");
+      span.textContent = letter;
+      guestEls.letters.appendChild(span);
+    }
+  }
+
   // --- Ajout categorie libre ---
   function addCustomCategory() {
     const value = customInput.value.trim();
@@ -183,6 +374,7 @@ export function initLobbyView(state, conn) {
     localCategories.add(c);
   }
   renderCategoriesHost();
+  renderLettersHost();
 
   // ===========================================
   // Rendu pour les non-hotes (lecture seule)
@@ -216,9 +408,12 @@ export function initLobbyView(state, conn) {
       guestEls.scoreInvalid.textContent = config.scoring.invalidOrEmpty;
       if (guestEls.scoreCheater) {
         const cp = config.scoring.cheaterPenaltyPerCheat ?? 0;
-        guestEls.scoreCheater.textContent = cp === 0 ? "desactive" : `${cp} / cat.`;
+        const cpAbs = Math.abs(cp);
+        guestEls.scoreCheater.textContent = cpAbs === 0 ? "desactive" : `-${cpAbs} pts / cat.`;
       }
     }
+    // Lettres autorisees pour le tirage
+    renderLettersGuest(config.letterPool);
   };
 
   // Si on rejoint et qu'on a deja recu une config (joined), on l'applique
@@ -241,11 +436,20 @@ export function initLobbyView(state, conn) {
       scoreInputs.uniqueAnswer.value = String(config.scoring.uniqueAnswer);
       scoreInputs.duplicateAnswer.value = String(config.scoring.duplicateAnswer);
       scoreInputs.invalidOrEmpty.value = String(config.scoring.invalidOrEmpty);
+      // Le malus est stocke en negatif cote protocole, mais affiche en positif dans l'UI
       const cp = config.scoring.cheaterPenaltyPerCheat;
-      scoreInputs.cheaterPenaltyPerCheat.value = String(
-        typeof cp === "number" ? cp : 0
-      );
+      const cpAbs = typeof cp === "number" ? Math.abs(cp) : 0;
+      scoreInputs.cheaterPenaltyPerCheat.value = String(cpAbs);
     }
+    // Lettres : si la config en contient, on les applique. Sinon (vieille
+    // config), on retombe sur le pool par defaut.
+    localLetters.clear();
+    const incoming = (typeof config.letterPool === "string" ? config.letterPool : "")
+      .toUpperCase().replace(/[^A-Z]/g, "");
+    const source = incoming.length > 0 ? incoming : DEFAULT_POOL;
+    for (const l of source) localLetters.add(l);
+    if (localLetters.size === 0) localLetters.add("A");
+    renderLettersHost();
   };
 
   // --- Rendu de la liste des joueurs ---
@@ -330,6 +534,9 @@ export function initLobbyView(state, conn) {
       showToast("Bareme invalide.", { type: "error" });
       return;
     }
+    // Idem que pushConfigSoon : on synchronise state.config localement
+    // pour que la phase de validation puisse lire le bareme cote host.
+    state.config = config;
     conn.send({ type: "start_game", config });
   });
 

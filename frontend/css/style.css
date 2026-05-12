@@ -241,6 +241,67 @@ input.code-input::placeholder {
 .scoring-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .scoring-grid input { font-size: 18px; font-weight: 700; text-align: center; }
 
+/* Separateur visuel entre sections de config */
+.config-sep {
+  border: none;
+  border-top: 1px solid var(--beige-fonce);
+  margin: 28px 0;
+}
+
+/* Grille de selection des lettres autorisees (host) */
+.letters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.letter-btn {
+  padding: 8px 0;
+  background: var(--blanc);
+  border: 2px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gris-clair);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 36px;
+}
+.letter-btn:hover { border-color: var(--bleu-accent); }
+.letter-btn.selected {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  border-color: var(--bleu-nuit);
+}
+.letter-btn.was-last-game {
+  /* Petit point orange en haut a droite pour les lettres tirees la derniere partie */
+  position: relative;
+}
+.letter-btn.was-last-game::after {
+  content: "";
+  position: absolute;
+  top: 2px; right: 4px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--jaune);
+}
+.letters-actions {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;
+}
+.letters-last-info {
+  color: var(--gris-texte);
+}
+
+/* Variante "lecture seule" pour le guest : lettres non cliquables */
+.letters-grid-readonly .letter-btn {
+  cursor: default;
+  pointer-events: none;
+}
+.letters-grid-readonly .letter-btn:not(.selected) {
+  opacity: 0.4;
+}
+
 .readonly-value {
   padding: 12px 14px;
   background: var(--beige);
@@ -691,6 +752,15 @@ input.code-input::placeholder {
   .cheater-panel-controls { align-self: center; }
   .cheater-btn { width: 44px; height: 44px; }
   .cheater-count { font-size: 24px; min-width: 40px; }
+
+  /* --- Lobby : grille des lettres autorisees --- */
+  .letters-grid {
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    gap: 5px;
+  }
+  .letter-btn { min-height: 40px; font-size: 14px; }
+  .letters-actions .btn { font-size: 13px; padding: 8px 10px; }
+  .config-sep { margin: 22px 0; }
 
   /* ==========================================================================
      VUE MANCHE

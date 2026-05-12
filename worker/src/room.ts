@@ -450,7 +450,20 @@ export class RoomDO {
   private startNextRound(): void {
     if (!this.config) return;
     this.currentRound += 1;
-    this.letter = drawLetter(ROUND_CONFIG.LETTERS, this.drawnLetters);
+    // Pool de lettres : depuis la config si fourni et non vide, sinon defaut serveur
+    const rawPool = this.config.letterPool ?? "";
+    const cleanedPool = rawPool.toUpperCase().replace(/[^A-Z]/g, "");
+    // Dedup en preservant l'ordre
+    const seen = new Set<string>();
+    let dedupPool = "";
+    for (const ch of cleanedPool) {
+      if (!seen.has(ch)) {
+        seen.add(ch);
+        dedupPool += ch;
+      }
+    }
+    const pool = dedupPool.length > 0 ? dedupPool : ROUND_CONFIG.LETTERS;
+    this.letter = drawLetter(pool, this.drawnLetters);
     this.drawnLetters.push(this.letter);
     this.answers = {};
     this.cellStates = {};
@@ -806,7 +819,11 @@ export class RoomDO {
     const ranking = this.snapshotPlayers().sort(
       (a, b) => b.totalScore - a.totalScore
     );
-    this.broadcast({ type: "game_finished", ranking });
+    this.broadcast({
+      type: "game_finished",
+      ranking,
+      drawnLetters: [...this.drawnLetters],
+    });
     this.broadcastRoomState();
   }
 
@@ -918,6 +935,7 @@ export class RoomDO {
       currentResult: this.currentResult,
       finalRanking,
       myAnswers,
+      drawnLetters: [...this.drawnLetters],
     });
   }
 

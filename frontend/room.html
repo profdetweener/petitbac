@@ -57,6 +57,8 @@
           <ul class="categories-selected" id="categories-selected"></ul>
         </div>
 
+        <hr class="config-sep">
+
         <div class="form-row">
           <div class="form-group">
             <label for="rounds-input">Nombre de manches</label>
@@ -105,11 +107,30 @@
           </div>
           <div class="form-group">
             <label for="score-cheater">Malus tricheur (bouton STOP)</label>
-            <input type="number" id="score-cheater" value="0" min="-100" max="0" step="1">
+            <input type="number" id="score-cheater" value="0" min="0" max="100" step="1">
             <p class="info-line" style="font-size: 12px; margin-top: 4px;">
-              Pendant la phase de vote, on pourra signaler des cases "tricheuses" pour le joueur qui a STOP alors qu'il n'avait pas repondu de bonne foi a chaque categorie. Mettre 0 desactive cette option.
+              Nombre de points retires (par categorie tricheuse) au joueur qui a fait STOP sans avoir repondu de bonne foi. Mettre 0 desactive cette option.
             </p>
           </div>
+        </div>
+
+        <hr class="config-sep">
+
+        <div class="form-group">
+          <label>Lettres a utiliser</label>
+          <p class="info-line" style="font-size: 12px; margin-top: -4px; margin-bottom: 8px;">
+            Clique sur une lettre pour l'activer / la desactiver. Il faut au moins 1 lettre selectionnee.
+          </p>
+          <div class="letters-grid" id="letters-grid"></div>
+          <div class="letters-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="letters-select-all">Toutes</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="letters-select-none">Aucune</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="letters-select-default">Defaut</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="letters-deselect-last" style="display: none;">
+              Desactiver les lettres de la derniere partie
+            </button>
+          </div>
+          <p class="info-line letters-last-info" id="letters-last-info" style="display: none; font-size: 12px; margin-top: 6px;"></p>
         </div>
 
         <button class="btn btn-primary btn-block" id="btn-start-game">
@@ -129,6 +150,8 @@
           <label class="sub-label">Categories</label>
           <ul class="categories-selected" id="guest-categories"></ul>
         </div>
+
+        <hr class="config-sep">
 
         <div class="form-row">
           <div class="form-group">
@@ -160,6 +183,13 @@
             <label class="sub-label">Malus tricheur (bouton STOP)</label>
             <div class="readonly-value" id="guest-score-cheater">—</div>
           </div>
+        </div>
+
+        <hr class="config-sep">
+
+        <div class="form-group">
+          <label class="sub-label">Lettres utilisees</label>
+          <div class="letters-grid letters-grid-readonly" id="guest-letters"></div>
         </div>
 
         <p class="info-line" style="text-align: center; font-style: italic;">
