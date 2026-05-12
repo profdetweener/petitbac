@@ -587,11 +587,18 @@ input.code-input::placeholder {
   line-height: 1.6;
 }
 .legal-page ul li { margin-bottom: 6px; }
-.legal-page a {
+/* Liens dans le texte (pas les boutons stylés en .btn) */
+.legal-page a:not(.btn) {
   color: var(--bleu-accent);
   text-decoration: underline;
 }
-.legal-page a:hover { color: var(--bleu-nuit); }
+.legal-page a:not(.btn):hover { color: var(--bleu-nuit); }
+/* Bouton final "Lancer une partie" : texte blanc, pas de soulignement,
+   pour rester cohérent avec les autres .btn-primary du site */
+.legal-page a.btn-primary {
+  color: #ffffff;
+  text-decoration: none;
+}
 .legal-page code {
   background: var(--beige);
   padding: 1px 6px;
