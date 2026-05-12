@@ -84,7 +84,7 @@ export function initRoundView(state, conn) {
       const row = document.createElement("div");
       row.className = "answer-row";
       const label = document.createElement("label");
-      label.textContent = `${category} en ${msg.letter}…`;
+      label.textContent = category;
       label.htmlFor = `answer-${idx}`;
       const input = document.createElement("input");
       input.type = "text";
