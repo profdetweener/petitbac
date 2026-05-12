@@ -9,7 +9,7 @@
 import { CATEGORY_PRESETS, LIMITS } from "./constants.js";
 import { showToast } from "./toast.js";
 
-export function initLobbyView(state, conn) {
+export function initLobbyView(state, conn, currentRoomCode) {
   // --- References DOM (host) ---
   const playersListEl = document.getElementById("players-list");
   const playersCountEl = document.getElementById("players-count");
@@ -153,14 +153,24 @@ export function initLobbyView(state, conn) {
   }
   // Expose pour pouvoir l'appeler depuis lobby.js a la fin d'une partie
   state.saveLastGameLetters = saveLastGameLetters;
-  // Expose pour rafraichir l'affichage des badges "dernieres lettres" quand
+  // Lit les lettres deja sorties UNIQUEMENT si elles concernent la room courante.
+  // Sinon (premiere partie de cette room, ou changement de room), on retourne [].
+  // Ca evite que les lettres d'une room precedente s'affichent par erreur au
+  // demarrage d'une nouvelle room.
+  function loadLettersForCurrentRoom() {
+    const stored = loadLastGameLetters();
+    if (!stored.roomCode || !currentRoomCode) return [];
+    if (stored.roomCode !== currentRoomCode) return [];
+    return stored.letters;
+  }
+  // Expose pour rafraichir l'affichage des badges "lettres deja sorties" quand
   // l'host revient au lobby apres une partie (les lettres viennent d'etre
   // memorisees en storage via game_finished).
   state.refreshLobbyLettersFromStorage = function () {
-    lastGameLetters = loadLastGameLetters().letters;
+    lastGameLetters = loadLettersForCurrentRoom();
     renderLettersHost();
   };
-  lastGameLetters = loadLastGameLetters().letters;
+  lastGameLetters = loadLettersForCurrentRoom();
 
   // --- Debounce pour ne pas spammer le serveur a chaque keystroke ---
   let pushConfigTimeoutId = null;

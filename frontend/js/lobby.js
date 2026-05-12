@@ -98,7 +98,7 @@ function showView(phase) {
 
 const conn = new RoomConnection(roomCode);
 
-initLobbyView(state, conn);
+initLobbyView(state, conn, roomCode);
 initRoundView(state, conn);
 initValidatingView(state, conn);
 initScoringView(state, conn);
